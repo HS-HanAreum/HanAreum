@@ -112,10 +112,38 @@ DB 변경 제안:
 커밋 메시지는 한국어로 짧고 명확하게 작성한다.
 
 ```txt
-타입: 작업 내용
+타입(대상): 작업 내용
 ```
 
-타입: feat, fix, style, refactor, docs, chore
+타입: feat, fix, style, refactor, docs, chore, remove
+
+타입 의미:
+
+- `feat`: 기능 추가
+- `fix`: 버그 수정
+- `style`: UI / 스타일 수정
+- `refactor`: 기능 변화 없는 코드 구조 정리
+- `docs`: 문서 수정
+- `chore`: 테스트 파일 삭제, 설정 정리 등 기능과 직접 관련 없는 작업
+- `remove`: 파일 또는 코드 삭제
+
+좋은 예시:
+
+```txt
+fix(수정할 파일명): 수정 내용
+feat(추가할 파일명): 추가 내용
+remove(삭제할 파일명): 삭제 내용
+```
+
+나쁜 예시:
+
+```txt
+수정
+완성
+test
+```
+
+파일명이나 상세 대상이 중요하면 `타입(대상): 작업 내용` 형식으로 적는다.
 
 PR base는 항상 `dev`로 한다. merge는 기술 리드만 한다. conflict가 나면 바로 수정하지 말고 상황을 정리한다.
 
