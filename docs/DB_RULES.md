@@ -1,6 +1,6 @@
-# HS-Road DB 규칙
+# HanAreum DB 규칙
 
-이 문서는 HS-Road 프로젝트에서 Supabase DB를 사용할 때 지켜야 할 규칙을 정리합니다.
+이 문서는 HanAreum 프로젝트에서 Supabase DB를 사용할 때 지켜야 할 규칙을 정리합니다.
 
 ---
 
@@ -94,7 +94,7 @@ visit_time_slot text
 created_at timestamp
 ```
 
-### routes - 후순위
+### routes
 
 ```sql
 id uuid primary key
@@ -105,7 +105,7 @@ is_public boolean
 created_at timestamp
 ```
 
-### route_places - 후순위
+### route_places
 
 ```sql
 id uuid primary key
