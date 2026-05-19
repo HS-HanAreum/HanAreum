@@ -67,8 +67,9 @@ DB 변경 제안:
 - UI 문구는 한국어로 작성한다.
 - 기존 코드 스타일을 우선 따른다.
 - 패키지가 필요하면 설치하지 말고 먼저 제안한다.
-- Kakao Local REST API는 서버에서만 호출한다.
+- Kakao Local REST API와 Naver API는 서버에서만 호출한다.
 - 프론트엔드는 `/api/places/search`를 호출한다.
+- 장소 검색과 지도 표시의 기준 데이터는 Kakao를 우선 사용하고, Naver는 이미지 또는 보조 정보 확인 용도로만 사용한다.
 - 장소 데이터는 외부 API 결과를 전부 저장하지 않는다. 리뷰 작성, 북마크 추가, 동선 저장 시에만 필요한 장소 정보를 Supabase에 저장한다.
 - 로그인과 회원가입은 Supabase Auth 이메일 / 비밀번호만 사용한다.
 - 사용자별 데이터는 로그인한 사용자의 `user_id`를 기준으로 저장한다.
@@ -94,7 +95,8 @@ DB 변경 제안:
 - `main` 또는 `dev` 직접 push
 - PR 없이 merge
 - 실패한 작업을 성공했다고 말하기
-- Google Maps 또는 Naver Maps 사용
+- Google Maps 사용
+- Naver를 Kakao 대체 지도/검색 기준 데이터로 사용하는 것
 - Redux, Zustand, React Query, Prisma, Express, NestJS, MongoDB, UI 컴포넌트 라이브러리 추가
 - 학교 메일 인증, 이메일 OTP 인증, 소셜 로그인 구현
 
@@ -167,7 +169,7 @@ PR base는 항상 `dev`로 한다. merge는 기술 리드만 한다. conflict가
 - `docs/PROJECT_SPEC.md`: 서비스 설명과 전체 구조
 - `docs/MVP_SCOPE.md`: MVP 구현 범위와 제외 범위
 - `docs/TECH_STACK.md`: 사용 기술과 사용하지 않는 기술
-- `docs/API_AUTH_RULES.md`: Kakao API, Supabase Auth, Route 규칙
+- `docs/API_AUTH_RULES.md`: Kakao API, Naver API, Supabase Auth, Route 규칙
 - `docs/DB_RULES.md`: Supabase DB 저장 규칙과 변경 제안 형식
 - `docs/GITHUB_GUIDE.md`: GitHub 사용 가이드
 - `docs/BRANCH_CONFLICT_GUIDE.md`: 브랜치 충돌 대응 가이드
