@@ -22,6 +22,7 @@
 ### 2.1 장소 검색
 
 - Kakao Local API 기반 장소 검색
+- Naver API 기반 장소 이미지 또는 보조 정보 확인
 - 키워드 기반 검색
 - 카테고리 기반 검색
 - 한성대 주변 반경 검색
@@ -40,6 +41,7 @@
 - 장소명
 - 카테고리
 - 주소
+- 이미지 후보
 - 3-Dot 거리 표시
 - 북마크 버튼
 - 리뷰 요약
@@ -129,6 +131,7 @@ night
 - Supabase
 - Kakao Maps JavaScript API
 - Kakao Local REST API
+- Naver API
 
 ---
 
@@ -141,7 +144,7 @@ Next.js 화면
 ↓
 Next.js API Route
 ↓
-Kakao Local API / Supabase
+Kakao Local API / Naver API / Supabase
 ↓
 Next.js 화면에 결과 표시
 ```
@@ -169,6 +172,7 @@ src/components/
 
 src/lib/
   kakao.ts
+  naver.ts
   supabase.ts
   distance.ts
   constants.ts
@@ -195,7 +199,7 @@ docs/
 
 | 담당 영역 | 담당자 | 주요 내용 |
 |---|---|---|
-| 스마트 POI / 지도 / API / 통합 | 강경민 | Kakao API, 지도, DB, 통합 |
+| 스마트 POI / 지도 / API / 통합 | 강경민 | Kakao API, Naver API, 지도, DB, 통합 |
 | 스마트 POI / 장소 리스트 / 필터 UI | 박민재 | 장소 카드, 리스트, 필터, 3-Dot UI |
 | 북마크 | 김연우 | 북마크 버튼, 저장 목록 |
 | 커스텀 폴더 | 설지희 | 폴더 생성, 폴더 선택 UI |
