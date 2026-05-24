@@ -5,11 +5,11 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { idToEmail } from './authHelpers';
 
-// 입력칸 공통 스타일 (흰 배경 + 하늘색 포커스 포인트)
+// 입력칸 공통 스타일 (흰 배경 + 파란색 포커스 포인트)
 const FIELD_CLASS =
-  'w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 ' +
-  'focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-200';
-const LABEL_CLASS = 'mb-1 block text-sm font-medium text-gray-700';
+  'w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 ' +
+  'focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200';
+const LABEL_CLASS = 'mb-1 block text-sm font-medium text-slate-700';
 
 export default function LoginForm() {
   const router = useRouter();
@@ -82,7 +82,7 @@ export default function LoginForm() {
       <button
         type="submit"
         disabled={loading}
-        className="w-full rounded-lg bg-sky-500 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-sky-600 disabled:cursor-not-allowed disabled:bg-sky-300"
+        className="w-full rounded-lg bg-blue-500 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-600 disabled:cursor-not-allowed disabled:bg-blue-300"
       >
         {loading ? '로그인 중...' : '로그인'}
       </button>
