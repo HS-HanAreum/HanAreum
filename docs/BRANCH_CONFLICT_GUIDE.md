@@ -8,7 +8,7 @@
 
 ## 1. 기본 원칙
 
-우리 팀은 `main`, `dev`, `feature/*` 브랜치를 사용합니다.
+우리 팀은 `main`, `dev`, `feat/*` 브랜치를 사용합니다.
 
 ```txt
 main
@@ -17,7 +17,7 @@ main
 dev
 → 개발 내용을 모으는 통합 브랜치
 
-feature/이름이니셜
+feat/이름이니셜
 → 각자 작업하는 개인 작업 브랜치
 ```
 
@@ -26,7 +26,7 @@ feature/이름이니셜
 ```txt
 1. main 브랜치에 직접 push 금지
 2. dev 브랜치에 직접 push 금지
-3. 각자 feature 브랜치에서만 작업
+3. 각자 feat 브랜치에서만 작업
 4. 작업이 끝나면 PR 생성
 5. PR의 base는 항상 dev
 6. merge는 전공자 / 기술 리드만 진행
@@ -66,91 +66,28 @@ DB / API / 지도 핵심 구조 결정
 
 | 담당 영역 | 담당자 | 브랜치 |
 |---|---|---|
-| 스마트 POI / 지도 / API / 통합 | 강경민 | `feature/kkm` |
-| 스마트 POI / 장소 리스트 / 필터 UI | 박민재 | `feature/pmj` |
-| 북마크 | 김연우 | `feature/kyw` |
-| 커스텀 폴더 | 설지희 | `feature/sjh` |
-| 리뷰 | 오유민 | `feature/oym` |
-| 혼잡도 | 최유미 | `feature/cym` |
+| 스마트 POI / 지도 / API / 통합 / 장소 리스트 / 필터 UI | 강경민 | `feat/kkm` |
+| 로그인 / 회원가입 / 로그아웃 | 박민재 | `feat/pmj` |
+| 북마크 | 김연우 | `feat/kyw` |
+| 커스텀 폴더 | 설지희 | `feat/sjh` |
+| 리뷰 | 오유민 | `feat/oym` |
+| 혼잡도 | 최유미 | `feat/cym` |
 
 ---
 
 ## 4. 담당자별 작업 범위
 
-### 강경민 - 지도 / API / DB / 통합
+### 강경민 - 지도 / API / DB / 통합 / 장소 리스트 / 필터 UI
 
-수정 가능:
-
-```txt
-src/components/map/**
-src/app/api/**
-src/lib/**
-src/types/**
-supabase/schema.sql
-.env.example
-```
-
-### 박민재 - 장소 리스트 / 필터 UI
-
-수정 가능:
-
-```txt
-src/components/places/**
-src/types/place.ts
-```
-
-수정 금지:
-
-```txt
-src/app/api/**
-src/lib/kakao.ts
-src/lib/supabase.ts
-supabase/schema.sql
-.env
-package.json
-```
+### 박민재 - 로그인 / 회원가입 / 로그아웃 / 소셜 로그인 / 학교 인증
 
 ### 김연우 - 북마크
 
-수정 가능:
-
-```txt
-src/components/bookmarks/**
-src/app/bookmarks/**
-src/types/bookmark.ts
-```
-
 ### 설지희 - 커스텀 폴더
-
-수정 가능:
-
-```txt
-src/components/bookmarks/**
-src/app/bookmarks/**
-src/types/bookmark.ts
-```
 
 ### 오유민 - 리뷰
 
-수정 가능:
-
-```txt
-src/components/reviews/**
-src/app/places/**
-src/types/review.ts
-```
-
 ### 최유미 - 혼잡도
-
-수정 가능:
-
-```txt
-src/components/reviews/**
-src/app/places/**
-src/types/review.ts
-```
-
----
 
 ## 5. 작업 시작 명령어
 
@@ -159,7 +96,7 @@ src/types/review.ts
 ```bash
 git checkout dev
 git pull origin dev
-git checkout -b feature/kkm
+git checkout -b feat/kkm
 ```
 
 ### 박민재
@@ -167,7 +104,7 @@ git checkout -b feature/kkm
 ```bash
 git checkout dev
 git pull origin dev
-git checkout -b feature/pmj
+git checkout -b feat/pmj
 ```
 
 ### 김연우
@@ -175,7 +112,7 @@ git checkout -b feature/pmj
 ```bash
 git checkout dev
 git pull origin dev
-git checkout -b feature/kyw
+git checkout -b feat/kyw
 ```
 
 ### 설지희
@@ -183,7 +120,7 @@ git checkout -b feature/kyw
 ```bash
 git checkout dev
 git pull origin dev
-git checkout -b feature/sjh
+git checkout -b feat/sjh
 ```
 
 ### 오유민
@@ -191,7 +128,7 @@ git checkout -b feature/sjh
 ```bash
 git checkout dev
 git pull origin dev
-git checkout -b feature/oym
+git checkout -b feat/oym
 ```
 
 ### 최유미
@@ -199,7 +136,7 @@ git checkout -b feature/oym
 ```bash
 git checkout dev
 git pull origin dev
-git checkout -b feature/cym
+git checkout -b feat/cym
 ```
 
 ---
@@ -210,7 +147,7 @@ git checkout -b feature/cym
 git status
 git add .
 git commit -m "작업 내용"
-git push origin feature/내브랜치
+git push origin feat/내브랜치
 ```
 
 예시:
@@ -219,7 +156,7 @@ git push origin feature/내브랜치
 git status
 git add .
 git commit -m "리뷰 작성 폼 추가"
-git push origin feature/oym
+git push origin feat/oym
 ```
 
 주의:
@@ -235,21 +172,21 @@ git add . 하기 전에 반드시 git status를 확인합니다.
 
 ```txt
 base: dev
-compare: feature/내브랜치
+compare: feat/내브랜치
 ```
 
 예시:
 
 ```txt
 base: dev
-compare: feature/oym
+compare: feat/oym
 ```
 
 절대 아래처럼 만들지 않습니다.
 
 ```txt
 base: main
-compare: feature/oym
+compare: feat/oym
 ```
 
 ---
@@ -359,7 +296,7 @@ git pull origin dev를 했더니 conflict가 났어.
 ### 5단계: 기술 리드에게 공유
 
 ```txt
-팀장님, feature/pmj에서 git pull origin dev 하다가 conflict가 났습니다.
+팀장님, feat/pmj에서 git pull origin dev 하다가 conflict가 났습니다.
 
 충돌 파일:
 src/components/places/PlaceCard.tsx
@@ -402,7 +339,7 @@ dev에서 가져온 코드
 ```bash
 git add 충돌난파일
 git commit -m "dev 병합 충돌 해결"
-git push origin feature/작업브랜치
+git push origin feat/작업브랜치
 ```
 
 예시:
@@ -410,7 +347,7 @@ git push origin feature/작업브랜치
 ```bash
 git add src/components/places/PlaceCard.tsx
 git commit -m "장소 카드 병합 충돌 해결"
-git push origin feature/pmj
+git push origin feat/pmj
 ```
 
 ---
@@ -430,6 +367,6 @@ git push origin feature/pmj
 ## 14. 한 줄 요약
 
 ```txt
-내 feature 브랜치에서 작업하고, push하고, PR을 만든다.
+내 feat 브랜치에서 작업하고, push하고, PR을 만든다.
 문제가 생기면 먼저 상황을 정리하고, merge와 최종 conflict 해결은 기술 리드가 한다.
 ```

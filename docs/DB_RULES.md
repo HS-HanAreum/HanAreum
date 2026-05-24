@@ -17,7 +17,7 @@
 
 ## 2. 장소 데이터 저장 전략
 
-Kakao Local API에서 받은 장소 데이터를 전부 DB에 저장하지 않습니다.
+Kakao Local API와 Naver API에서 받은 장소 데이터를 전부 DB에 저장하지 않습니다.
 
 장소는 아래 행동이 발생했을 때만 저장합니다.
 
@@ -31,7 +31,7 @@ Kakao Local API에서 받은 장소 데이터를 전부 DB에 저장하지 않�
 
 ```txt
 외부 API 결과를 모두 저장하면 데이터가 불필요하게 많아짐
-Kakao 장소 정보가 바뀌어도 우리 DB는 최신 상태가 아닐 수 있음
+Kakao 또는 Naver 장소 정보가 바뀌어도 우리 DB는 최신 상태가 아닐 수 있음
 우리 서비스에 필요한 장소만 저장하는 것이 더 단순함
 ```
 
@@ -125,6 +125,8 @@ provider = kakao
 provider_place_id = Kakao Local API의 place id
 ```
 
+Naver는 이미지 또는 보조 정보 확인 용도로만 사용합니다. 장소 저장 기준은 Kakao place id를 우선 사용합니다.
+
 ---
 
 ## 5. 방문 시간대 값
@@ -201,7 +203,7 @@ service role key 사용 금지
 임의로 DB 컬럼명 변경 금지
 임의로 테이블 삭제 금지
 브라우저 코드에 비밀 키 작성 금지
-Kakao API 결과 전체를 DB에 저장 금지
+Kakao API와 Naver API 결과 전체를 DB에 저장 금지
 ```
 
 ---
