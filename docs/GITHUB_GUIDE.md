@@ -1,6 +1,6 @@
-# GitHub 사용 가이드 - HS-Road 팀원용
+# GitHub 사용 가이드 - HanAreum 팀원용
 
-이 문서는 HS-Road 프로젝트에 참여하는 비전공자 팀원이 GitHub를 사용해 코드를 공유하는 방법을 설명합니다.
+이 문서는 HanAreum 프로젝트에 참여하는 비전공자 팀원이 GitHub를 사용해 코드를 공유하는 방법을 설명합니다.
 
 목표는 어렵게 Git을 공부하는 것이 아니라, **내가 맡은 작업을 안전하게 올리고 PR을 만드는 것**입니다.
 
@@ -139,15 +139,15 @@ Mac: Control + `
 
 ```bash
 git clone 리포지토리주소
-cd hs-road
+cd hanareum
 npm install
 ```
 
 예시:
 
 ```bash
-git clone https://github.com/team-name/hs-road.git
-cd hs-road
+git clone https://github.com/team-name/hanareum.git
+cd hanareum
 npm install
 ```
 
@@ -387,7 +387,7 @@ feat/oym에서 만든 리뷰 기능
 
 ```bash
 git clone 리포지토리주소
-cd hs-road
+cd hanareum
 npm install
 ```
 
