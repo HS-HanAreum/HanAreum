@@ -12,6 +12,7 @@
 - 거리 기반 직관적 비교
 - 리뷰 기반 시간대 혼잡도 확인
 - 개인 북마크와 폴더 관리
+- 장소를 연결한 동선 생성과 공유
 
 ---
 
@@ -22,6 +23,7 @@
 ### 2.1 장소 검색
 
 - Kakao Local API 기반 장소 검색
+- Naver API 기반 장소 이미지 또는 보조 정보 확인
 - 키워드 기반 검색
 - 카테고리 기반 검색
 - 한성대 주변 반경 검색
@@ -40,6 +42,7 @@
 - 장소명
 - 카테고리
 - 주소
+- 이미지 후보
 - 3-Dot 거리 표시
 - 북마크 버튼
 - 리뷰 요약
@@ -105,6 +108,15 @@ night
 이 장소는 점심 시간대에 방문 리뷰가 많아요.
 ```
 
+### 2.8 동선
+
+- 장소 2개 이상을 선택해 동선 생성
+- 동선 이름 입력, 장소 순서 저장
+- Kakao 지도 위에 장소 좌표를 순서대로 잇는 Polyline 표시
+- 동선 추천 게시판: 공유된 동선 목록, 동선 상세, 동선 좋아요
+
+실제 길찾기 경로가 아니라 좌표를 순서대로 연결하는 방식입니다. 자세한 기준은 `docs/MVP_SCOPE.md`를 따릅니다.
+
 ---
 
 ## 3. 후순위 기능
@@ -129,6 +141,7 @@ night
 - Supabase
 - Kakao Maps JavaScript API
 - Kakao Local REST API
+- Naver API
 
 ---
 
@@ -141,7 +154,7 @@ Next.js 화면
 ↓
 Next.js API Route
 ↓
-Kakao Local API / Supabase
+Kakao Local API / Naver API / Supabase
 ↓
 Next.js 화면에 결과 표시
 ```
@@ -169,6 +182,7 @@ src/components/
 
 src/lib/
   kakao.ts
+  naver.ts
   supabase.ts
   distance.ts
   constants.ts
@@ -182,10 +196,13 @@ supabase/
   schema.sql
 
 docs/
+  PROJECT_SPEC.md
+  MVP_SCOPE.md
+  TECH_STACK.md
+  API_AUTH_RULES.md
+  DB_RULES.md
   GITHUB_GUIDE.md
   BRANCH_CONFLICT_GUIDE.md
-  PROJECT_SPEC.md
-  DB_RULES.md
   PROMPT_GUIDE.md
 ```
 
@@ -195,12 +212,12 @@ docs/
 
 | 담당 영역 | 담당자 | 주요 내용 |
 |---|---|---|
-| 스마트 POI / 지도 / API / 통합 | 강경민 | Kakao API, 지도, DB, 통합 |
-| 스마트 POI / 장소 리스트 / 필터 UI | 박민재 | 장소 카드, 리스트, 필터, 3-Dot UI |
+| 스마트 POI / 지도 / API / DB / 통합 / 장소 리스트 / 필터 UI | 강경민 | Kakao API, Naver API, 지도, DB, 통합, 장소 카드, 리스트, 필터, 3-Dot UI |
+| 로그인 / 회원가입 / 로그아웃 | 박민재 | Supabase Auth 이메일 / 비밀번호 회원가입, 로그인, 로그아웃 |
 | 북마크 | 김연우 | 북마크 버튼, 저장 목록 |
 | 커스텀 폴더 | 설지희 | 폴더 생성, 폴더 선택 UI |
 | 리뷰 | 오유민 | 리뷰 작성 폼, 별점, 리뷰 목록 |
-| 혼잡도 | 최유미 | 방문 시간대 선택, 혼잡도 표시 |
+| 혼잡도 / 동선 | 최유미 | 방문 시간대 선택, 혼잡도 표시, 동선 생성, Polyline, 동선 게시판 |
 
 ---
 

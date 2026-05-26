@@ -67,8 +67,9 @@ DB 변경 제안:
 - UI 문구는 한국어로 작성한다.
 - 기존 코드 스타일을 우선 따른다.
 - 패키지가 필요하면 설치하지 말고 먼저 제안한다.
-- Kakao Local REST API는 서버에서만 호출한다.
+- Kakao Local REST API와 Naver API는 서버에서만 호출한다.
 - 프론트엔드는 `/api/places/search`를 호출한다.
+- 장소 검색과 지도 표시의 기준 데이터는 Kakao를 우선 사용하고, Naver는 이미지 또는 보조 정보 확인 용도로만 사용한다.
 - 장소 데이터는 외부 API 결과를 전부 저장하지 않는다. 리뷰 작성, 북마크 추가, 동선 저장 시에만 필요한 장소 정보를 Supabase에 저장한다.
 - 로그인과 회원가입은 Supabase Auth 이메일 / 비밀번호만 사용한다.
 - 사용자별 데이터는 로그인한 사용자의 `user_id`를 기준으로 저장한다.
@@ -94,7 +95,8 @@ DB 변경 제안:
 - `main` 또는 `dev` 직접 push
 - PR 없이 merge
 - 실패한 작업을 성공했다고 말하기
-- Google Maps 또는 Naver Maps 사용
+- Google Maps 사용
+- Naver를 Kakao 대체 지도/검색 기준 데이터로 사용하는 것
 - Redux, Zustand, React Query, Prisma, Express, NestJS, MongoDB, UI 컴포넌트 라이브러리 추가
 - 학교 메일 인증, 이메일 OTP 인증, 소셜 로그인 구현
 
@@ -145,6 +147,8 @@ test
 
 파일명이나 상세 대상이 중요하면 `타입(대상): 작업 내용` 형식으로 적는다.
 
+커밋 메시지에 `Co-Authored-By` 같은 공동 작성자 트레일러를 넣지 않는다.
+
 PR base는 항상 `dev`로 한다. merge는 기술 리드만 한다. conflict가 나면 바로 수정하지 말고 상황을 정리한다.
 
 ## 7. 작업 후 보고
@@ -160,14 +164,27 @@ PR base는 항상 `dev`로 한다. merge는 기술 리드만 한다. conflict가
 
 설명은 비전공자도 이해할 수 있게 쓴다.
 
-## 8. 상세 문서
+## 8. 페이지 UI 공통 규칙
+
+새 페이지나 화면 UI를 만들 때는 누가 작업하든 아래를 지킨다. 기준 파일은 `src/app/page.tsx`다.
+
+- 페이지 최상위는 `src/app/page.tsx`처럼 `<div className="min-h-screen bg-slate-50">`로 감싸고, 그 안 최상단에 `@/components/layout/Header`를 넣는다.
+- 본문은 `<main className="mx-auto max-w-7xl px-6 py-6">`처럼 가운데 정렬 + 최대 너비 컨테이너를 쓴다. (`max-w-*` 값은 페이지 성격에 맞게 조정 가능)
+- 카드 / 박스는 `rounded-2xl border border-gray-200 bg-white p-5` 스타일을 따른다.
+- 색은 배경 `slate-50`, 카드 `white`, 글자 `slate-900` / `slate-500`, 강조(버튼 · 링크) `blue-500` / `blue-600`을 기본으로 한다.
+- 제목 · 라벨은 `text-sm font-semibold text-slate-900` 같은 기존 page.tsx 패턴을 우선 따른다.
+- 새 색 / 스타일을 임의로 도입하지 말고 page.tsx와 기존 컴포넌트의 Tailwind 클래스를 재사용한다.
+- **Header(`src/components/layout/Header.tsx`)는 모든 페이지에 반드시 포함한다.**
+  - 예외: 로그인 / 회원가입 같은 전체화면 인증 페이지는 Header 없이 가운데 정렬 카드 레이아웃을 쓴다. 이때도 배경 / 카드 / 색 규칙은 동일하게 따른다.
+
+## 9. 상세 문서
 
 필요한 경우 아래 문서를 함께 확인한다.
 
 - `docs/PROJECT_SPEC.md`: 서비스 설명과 전체 구조
 - `docs/MVP_SCOPE.md`: MVP 구현 범위와 제외 범위
 - `docs/TECH_STACK.md`: 사용 기술과 사용하지 않는 기술
-- `docs/API_AUTH_RULES.md`: Kakao API, Supabase Auth, Route 규칙
+- `docs/API_AUTH_RULES.md`: Kakao API, Naver API, Supabase Auth, Route 규칙
 - `docs/DB_RULES.md`: Supabase DB 저장 규칙과 변경 제안 형식
 - `docs/GITHUB_GUIDE.md`: GitHub 사용 가이드
 - `docs/BRANCH_CONFLICT_GUIDE.md`: 브랜치 충돌 대응 가이드

@@ -10,13 +10,14 @@
 - Supabase Auth
 - Kakao Maps JavaScript API
 - Kakao Local REST API
+- Naver API
 - Tailwind CSS
 - npm
 
 ## 2. 사용하지 않음
 
 - Google Maps API
-- Naver Maps API
+- Naver를 Kakao 대체 지도/검색 기준 데이터로 사용하는 것
 - Redux
 - Zustand
 - React Query

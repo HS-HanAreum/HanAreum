@@ -1,6 +1,6 @@
-# GitHub 사용 가이드 - HS-Road 팀원용
+# GitHub 사용 가이드 - HanAreum 팀원용
 
-이 문서는 HS-Road 프로젝트에 참여하는 비전공자 팀원이 GitHub를 사용해 코드를 공유하는 방법을 설명합니다.
+이 문서는 HanAreum 프로젝트에 참여하는 비전공자 팀원이 GitHub를 사용해 코드를 공유하는 방법을 설명합니다.
 
 목표는 어렵게 Git을 공부하는 것이 아니라, **내가 맡은 작업을 안전하게 올리고 PR을 만드는 것**입니다.
 
@@ -139,15 +139,15 @@ Mac: Control + `
 
 ```bash
 git clone 리포지토리주소
-cd hs-road
+cd hanareum
 npm install
 ```
 
 예시:
 
 ```bash
-git clone https://github.com/team-name/hs-road.git
-cd hs-road
+git clone https://github.com/team-name/hanareum.git
+cd hanareum
 npm install
 ```
 
@@ -162,19 +162,19 @@ main
 dev
 → 개발 내용을 모으는 브랜치
 
-feature/이름이니셜
+feat/이름이니셜
 → 각자 작업하는 개인 브랜치
 ```
 
 예시:
 
 ```txt
-feature/kkm
-feature/pmj
-feature/kyw
-feature/sjh
-feature/oym
-feature/cym
+feat/kkm
+feat/pmj
+feat/kyw
+feat/sjh
+feat/oym
+feat/cym
 ```
 
 중요:
@@ -182,7 +182,7 @@ feature/cym
 ```txt
 main 브랜치 직접 수정 금지
 dev 브랜치 직접 수정 금지
-내 feature 브랜치에서만 작업
+내 feat 브랜치에서만 작업
 ```
 
 ---
@@ -209,19 +209,19 @@ git pull origin dev
 ## 8. 내 작업 브랜치 만들기
 
 ```bash
-git checkout -b feature/내이니셜
+git checkout -b feat/내이니셜
 ```
 
 예시:
 
 ```bash
-git checkout -b feature/kkm
+git checkout -b feat/kkm
 ```
 
 이미 만든 브랜치로 이동할 때:
 
 ```bash
-git checkout feature/kkm
+git checkout feat/kkm
 ```
 
 ---
@@ -287,15 +287,15 @@ git add src/components/reviews/ReviewForm.tsx
 ## 12. 변경 내용 저장하기
 
 ```bash
-git commit -m "작업 내용"
+git commit -m "<작업 타입>(<작업 파일>): <작업 내용>"
 ```
 
 좋은 예시:
 
 ```bash
-git commit -m "장소 카드 UI 추가"
-git commit -m "북마크 버튼 클릭 기능 추가"
-git commit -m "리뷰 폼 오류 수정"
+git commit -m "feat(placeCard.tsx): 장소 카드 UI 추가"
+git commit -m "feat(bookmark.tsx): 북마크 버튼 클릭 기능 추가"
+git commit -m "fix(reviewForm.tsx): 리뷰 폼 오류 수정"
 ```
 
 나쁜 예시:
@@ -317,13 +317,13 @@ git push origin 브랜치이름
 예시:
 
 ```bash
-git push origin feature/kkm
+git push origin feat/kkm
 ```
 
 처음 push할 때 아래 안내가 나올 수 있습니다.
 
 ```bash
-git push --set-upstream origin feature/kkm
+git push --set-upstream origin feat/kkm
 ```
 
 이 경우 안내에 나온 명령어를 그대로 복사해서 실행합니다.
@@ -349,14 +349,14 @@ PR은 **내 작업을 dev 브랜치에 합쳐달라고 요청하는 것**입니�
 
 ```txt
 base: dev
-compare: feature/내브랜치
+compare: feat/내브랜치
 ```
 
 잘못된 설정:
 
 ```txt
 base: main
-compare: feature/내브랜치
+compare: feat/내브랜치
 ```
 
 ---
@@ -368,7 +368,7 @@ merge는 브랜치의 작업 내용을 다른 브랜치에 합치는 것입니�
 예시:
 
 ```txt
-feature/oym에서 만든 리뷰 기능
+feat/oym에서 만든 리뷰 기능
 → dev 브랜치에 합치기
 ```
 
@@ -387,7 +387,7 @@ feature/oym에서 만든 리뷰 기능
 
 ```bash
 git clone 리포지토리주소
-cd hs-road
+cd hanareum
 npm install
 ```
 
@@ -396,13 +396,13 @@ npm install
 ```bash
 git checkout dev
 git pull origin dev
-git checkout -b feature/내이니셜
+git checkout -b feat/내이니셜
 ```
 
 이미 브랜치가 있으면:
 
 ```bash
-git checkout feature/내이니셜
+git checkout feat/내이니셜
 ```
 
 작업 후:
@@ -411,7 +411,7 @@ git checkout feature/내이니셜
 git status
 git add .
 git commit -m "작업 내용"
-git push origin feature/내이니셜
+git push origin feat/내이니셜
 ```
 
 마지막:
@@ -419,7 +419,7 @@ git push origin feature/내이니셜
 ```txt
 GitHub에서 PR 만들기
 base: dev
-compare: feature/내이니셜
+compare: feat/내이니셜
 ```
 
 ---
