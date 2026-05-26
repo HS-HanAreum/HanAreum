@@ -164,7 +164,20 @@ PR base는 항상 `dev`로 한다. merge는 기술 리드만 한다. conflict가
 
 설명은 비전공자도 이해할 수 있게 쓴다.
 
-## 8. 상세 문서
+## 8. 페이지 UI 공통 규칙
+
+새 페이지나 화면 UI를 만들 때는 누가 작업하든 아래를 지킨다. 기준 파일은 `src/app/page.tsx`다.
+
+- 페이지 최상위는 `src/app/page.tsx`처럼 `<div className="min-h-screen bg-slate-50">`로 감싸고, 그 안 최상단에 `@/components/layout/Header`를 넣는다.
+- 본문은 `<main className="mx-auto max-w-7xl px-6 py-6">`처럼 가운데 정렬 + 최대 너비 컨테이너를 쓴다. (`max-w-*` 값은 페이지 성격에 맞게 조정 가능)
+- 카드 / 박스는 `rounded-2xl border border-gray-200 bg-white p-5` 스타일을 따른다.
+- 색은 배경 `slate-50`, 카드 `white`, 글자 `slate-900` / `slate-500`, 강조(버튼 · 링크) `blue-500` / `blue-600`을 기본으로 한다.
+- 제목 · 라벨은 `text-sm font-semibold text-slate-900` 같은 기존 page.tsx 패턴을 우선 따른다.
+- 새 색 / 스타일을 임의로 도입하지 말고 page.tsx와 기존 컴포넌트의 Tailwind 클래스를 재사용한다.
+- **Header(`src/components/layout/Header.tsx`)는 모든 페이지에 반드시 포함한다.**
+  - 예외: 로그인 / 회원가입 같은 전체화면 인증 페이지는 Header 없이 가운데 정렬 카드 레이아웃을 쓴다. 이때도 배경 / 카드 / 색 규칙은 동일하게 따른다.
+
+## 9. 상세 문서
 
 필요한 경우 아래 문서를 함께 확인한다.
 

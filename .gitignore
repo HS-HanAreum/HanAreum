@@ -40,3 +40,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# 팀 git 테스트용 스크래치 파일 (추적 금지)
+src/test.txt
