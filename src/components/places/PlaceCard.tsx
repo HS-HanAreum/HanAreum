@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import type { Place } from '@/types/place';
 import {
   BookmarkIcon,
@@ -12,6 +13,7 @@ import {
   BookIcon,
 } from '@/components/icons';
 import DistanceDots, { distanceLevel, distanceLabel } from './DistanceDots';
+import { savePlaceForDetail } from './placeHandoff';
 
 interface PlaceCardProps {
   place: Place;
@@ -110,11 +112,18 @@ export default function PlaceCard({ place }: PlaceCardProps) {
             <span className="text-xs font-medium">{shortCategory(place.category)}</span>
           </div>
         )}
+        {/* 사진(자리표시자)을 클릭하면 장소 상세 페이지로 이동한다 */}
+        <Link
+          href={`/places/${place.providerPlaceId}`}
+          onClick={() => savePlaceForDetail(place)}
+          aria-label={`${place.name} 상세 보기`}
+          className="absolute inset-0 z-10"
+        />
         <button
           type="button"
           onClick={() => setBookmarked((prev) => !prev)}
           title="북마크 (로그인 후 저장 예정)"
-          className="absolute right-2 top-2 rounded-full bg-white/80 p-1.5 text-slate-500 hover:text-blue-500"
+          className="absolute right-2 top-2 z-20 rounded-full bg-white/80 p-1.5 text-slate-500 hover:text-blue-500"
         >
           <BookmarkIcon className="h-4 w-4" filled={bookmarked} />
         </button>
