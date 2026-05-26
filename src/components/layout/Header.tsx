@@ -1,7 +1,16 @@
+import Link from 'next/link';
 import { LogoIcon, UserIcon } from '@/components/icons';
 
-// 상단 메뉴는 다른 단계/팀원 담당 페이지라 아직 이동하지 않는다 (시각용).
-const NAV_ITEMS = ['홈', '북마크', '동선 리스트', '마이페이지'];
+// 상단 메뉴. href 가 있는 항목만 해당 페이지로 이동하고, 나머지는 아직 준비 중(시각용).
+const NAV_ITEMS: { label: string; href?: string }[] = [
+  { label: '홈' },
+  { label: '북마크' },
+  { label: '동선 리스트', href: '/routes' },
+  { label: '마이페이지' },
+];
+
+// 메뉴 항목 공통 스타일 (링크/버튼 모두 동일하게 보이도록).
+const NAV_ITEM_CLASS = 'hidden rounded px-2 py-1 text-sm text-slate-600 hover:text-blue-500 sm:inline';
 
 export default function Header() {
   return (
@@ -14,16 +23,17 @@ export default function Header() {
         </div>
 
         <nav className="flex items-center gap-1 sm:gap-3">
-          {NAV_ITEMS.map((item) => (
-            <button
-              key={item}
-              type="button"
-              title="준비 중"
-              className="hidden rounded px-2 py-1 text-sm text-slate-600 hover:text-blue-500 sm:inline"
-            >
-              {item}
-            </button>
-          ))}
+          {NAV_ITEMS.map(({ label, href }) =>
+            href ? (
+              <Link key={label} href={href} className={NAV_ITEM_CLASS}>
+                {label}
+              </Link>
+            ) : (
+              <button key={label} type="button" title="준비 중" className={NAV_ITEM_CLASS}>
+                {label}
+              </button>
+            ),
+          )}
           <button
             type="button"
             title="로그인 (준비 중)"
