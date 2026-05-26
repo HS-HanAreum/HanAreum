@@ -1,7 +1,8 @@
 import Link from 'next/link';
 import type { Place } from '@/types/place';
-import { ChevronRightIcon, StarIcon, MapPinIcon } from '@/components/icons';
+import { ChevronRightIcon, StarIcon } from '@/components/icons';
 import KakaoMap from '@/components/map/KakaoMap';
+import PlaceImage from './PlaceImage';
 import DistanceDots, { distanceLevel, distanceLabel } from './DistanceDots';
 
 interface PlaceDetailProps {
@@ -40,13 +41,8 @@ export default function PlaceDetail({ place }: PlaceDetailProps) {
         <div className="space-y-6">
           {/* 사진 + 이름 + 분류 */}
           <section className="rounded-2xl border border-gray-200 bg-white p-5">
-            {/* 사진은 Kakao 검색 결과에 없어 자리표시자로 둔다 (이미지 보강은 이후 단계) */}
-            <div className="flex h-56 items-center justify-center rounded-xl bg-gradient-to-br from-slate-100 to-slate-200">
-              <div className="flex flex-col items-center gap-2 text-slate-300">
-                <MapPinIcon className="h-10 w-10" />
-                <span className="text-xs text-slate-400">사진 준비중</span>
-              </div>
-            </div>
+            {/* 사진은 Kakao 결과에 없어 Naver 이미지로 보조로 채운다 (카드와 같은 방식) */}
+            <PlaceImage name={place.name} address={place.address} />
 
             <div className="mt-4 flex flex-wrap items-center gap-2">
               <span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-600">
