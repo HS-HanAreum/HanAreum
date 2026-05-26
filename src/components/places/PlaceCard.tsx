@@ -14,6 +14,7 @@ import {
 } from '@/components/icons';
 import DistanceDots, { distanceLevel, distanceLabel } from './DistanceDots';
 import { savePlaceForDetail } from './placeHandoff';
+import { runWithImageLimit } from './imageQueue';
 
 interface PlaceCardProps {
   place: Place;
@@ -67,9 +68,12 @@ export default function PlaceCard({ place }: PlaceCardProps) {
     const controller = new AbortController();
     const region = regionHint(place.address);
     const query = region ? `${place.name} ${region}` : place.name;
-    fetch(`/api/places/image?query=${encodeURIComponent(query)}`, {
-      signal: controller.signal,
-    })
+    // 동시 요청을 제한해 한꺼번에 몰리지 않게 한다 (Naver 429 방지). 자세한 내용은 imageQueue.ts.
+    runWithImageLimit(() =>
+      fetch(`/api/places/image?query=${encodeURIComponent(query)}`, {
+        signal: controller.signal,
+      }),
+    )
       .then((res) => (res.ok ? res.json() : null))
       .then((data: { imageUrl?: string | null; thumbnailUrl?: string | null } | null) => {
         if (!active) return;
