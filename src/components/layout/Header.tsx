@@ -1,5 +1,6 @@
 import Link from 'next/link';
-import { LogoIcon, UserIcon } from '@/components/icons';
+import { LogoIcon } from '@/components/icons';
+import AuthNav from '@/components/auth/AuthNav';
 
 // 상단 메뉴. href 가 있으면 해당 페이지로 이동하고, 없으면 아직 페이지가 없어 "준비 중"으로 표시한다.
 const NAV_ITEMS: { label: string; href?: string }[] = [
@@ -40,13 +41,7 @@ export default function Header() {
               </button>
             ),
           )}
-          <Link
-            href="/login"
-            className="flex items-center gap-1 rounded-lg bg-blue-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-600"
-          >
-            <UserIcon className="h-4 w-4" />
-            로그인
-          </Link>
+          <AuthNav />
         </nav>
       </div>
     </header>

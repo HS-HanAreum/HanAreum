@@ -23,15 +23,22 @@ export default function LoginForm() {
     e.preventDefault();
     setErrorMsg('');
 
-    if (!id.trim() || !password) {
+    // 크롬 등 브라우저 자동완성은 input 값을 채우면서도 React onChange 를 발생시키지
+    // 않을 수 있어, state 만 보면 비어 있는 것으로 잘못 판정된다.
+    // 제출 시점에는 폼 DOM 값을 직접 읽어 검증·로그인에 사용한다.
+    const formData = new FormData(e.currentTarget);
+    const idValue = String(formData.get('username') ?? '').trim();
+    const passwordValue = String(formData.get('password') ?? '');
+
+    if (!idValue || !passwordValue) {
       setErrorMsg('아이디와 비밀번호를 입력해 주세요.');
       return;
     }
 
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({
-      email: idToEmail(id),
-      password,
+      email: idToEmail(idValue),
+      password: passwordValue,
     });
     setLoading(false);
 
@@ -51,6 +58,7 @@ export default function LoginForm() {
         </label>
         <input
           id="login-id"
+          name="username"
           type="text"
           value={id}
           onChange={(e) => setId(e.target.value)}
@@ -65,6 +73,7 @@ export default function LoginForm() {
         </label>
         <input
           id="login-password"
+          name="password"
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
