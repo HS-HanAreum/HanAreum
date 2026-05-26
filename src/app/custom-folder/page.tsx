@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import CustomFolderHeader from "@/components/bookmarks/CustomFolderHeader";
+import Header from "@/components/layout/Header";
 import FolderList from "@/components/bookmarks/FolderList";
 import FolderCreateModal from "@/components/bookmarks/FolderModal";
 import EmptyFolderState from "@/components/bookmarks/EmptyFolderState";
@@ -95,21 +95,21 @@ export default function CustomFolderPage(): React.ReactElement {
   const scrollBarTransformValue = `translateY(${smoothScrollProgress * SCROLL_BAR_TRAVEL_DISTANCE}px)`;
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A]">
-      <CustomFolderHeader />
+    <div className="min-h-screen bg-slate-50">
+      <Header />
 
-      <main className="mx-auto max-w-[1440px] px-8 py-12">
+      <main className="mx-auto max-w-7xl px-6 py-6">
         <section className="mb-10 flex items-start justify-between gap-6">
           <div>
-            <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-[#B6EEFF]/45 px-4 py-2 text-sm font-black text-[#3B82F6]">
+            <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-blue-100 px-4 py-2 text-sm font-black text-blue-600">
               <span className="text-base">📁</span>
               <span>내 한아름</span>
             </div>
 
-            <h1 className="text-5xl font-black tracking-tight text-[#0F172A]">
+            <h1 className="text-5xl font-black tracking-tight text-slate-900">
               커스텀폴더
             </h1>
-            <p className="mt-5 text-xl font-semibold text-[#64748B]">
+            <p className="mt-5 text-xl font-semibold text-slate-500">
               내가 저장한 장소들을 폴더별로 모아보세요.
             </p>
           </div>
@@ -117,22 +117,22 @@ export default function CustomFolderPage(): React.ReactElement {
           <button
             type="button"
             onClick={handleOpenModal}
-            className="mt-9 flex h-14 items-center gap-2 rounded-2xl border-2 border-[#3B82F6] bg-white px-6 text-lg font-black text-[#3B82F6] shadow-sm transition hover:-translate-y-0.5 hover:bg-[#3B82F6] hover:text-white"
+            className="mt-9 flex h-14 items-center gap-2 rounded-2xl border-2 border-blue-500 bg-white px-6 text-lg font-black text-blue-600 shadow-sm transition hover:-translate-y-0.5 hover:bg-blue-500 hover:text-white"
           >
             <span>➕</span>
             <span>새 폴더 만들기</span>
           </button>
         </section>
 
-        <section className="mb-8 flex items-center justify-between rounded-[28px] border border-[#E2E8F0] bg-white p-4 shadow-sm">
-          <div className="flex h-12 flex-1 items-center gap-3 rounded-2xl bg-[#F8FAFC] px-5 text-[#64748B] text-lg">
+        <section className="mb-8 flex items-center justify-between rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+          <div className="flex h-12 flex-1 items-center gap-3 rounded-2xl bg-slate-50 px-5 text-slate-500 text-lg">
             <span>🔍</span>
             <input
               value={query}
               onChange={(event) => {
                 setQuery(event.target.value);
               }}
-              className="h-12 w-full bg-transparent text-base font-semibold outline-none placeholder:text-[#94A3B8]"
+              className="h-12 w-full bg-transparent text-base font-semibold outline-none placeholder:text-slate-400"
               placeholder="폴더 이름 또는 저장한 장소를 검색해보세요"
             />
           </div>
@@ -140,14 +140,14 @@ export default function CustomFolderPage(): React.ReactElement {
           <div className="ml-4 flex items-center gap-2">
             <button
               type="button"
-              className="rounded-2xl bg-[#3B82F6] px-5 py-3 text-sm font-black text-white"
+              className="rounded-2xl bg-blue-600 px-5 py-3 text-sm font-black text-white"
             >
               전체
             </button>
 
             <button
               type="button"
-              className="rounded-2xl px-5 py-3 text-sm font-black text-[#64748B] hover:bg-[#F8FAFC]"
+              className="rounded-2xl px-5 py-3 text-sm font-black text-slate-500 hover:bg-slate-50"
             >
               최근 추가순
             </button>
@@ -164,9 +164,9 @@ export default function CustomFolderPage(): React.ReactElement {
         )}
       </main>
 
-      <div className="fixed right-8 top-[132px] h-[70vh] w-2 rounded-full bg-[#E2E8F0]">
+      <div className="fixed right-8 top-[132px] h-[70vh] w-2 rounded-full bg-gray-200">
         <div
-          className="h-44 w-2 rounded-full bg-[#94A3B8] shadow-sm will-change-transform"
+          className="h-44 w-2 rounded-full bg-slate-400 shadow-sm will-change-transform"
           style={{ transform: scrollBarTransformValue }}
         />
       </div>

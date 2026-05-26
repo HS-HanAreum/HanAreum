@@ -48,7 +48,7 @@ export default function FolderCard({
 
   return (
     <article
-      className="group rounded-[28px] border border-[#E2E8F0] bg-white p-7 shadow-sm transition hover:-translate-y-1 hover:shadow-xl hover:shadow-slate-200/70"
+      className="group rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-lg hover:shadow-slate-200"
       style={{
         animation: `fadeInUp 0.5s ease-out ${animationDelay}s both`,
       }}
@@ -67,7 +67,7 @@ export default function FolderCard({
       `}</style>
 
       <div className="mb-8 flex items-start justify-between">
-        <div className="flex h-20 w-20 items-center justify-center rounded-[24px] bg-[#F8FAFC] shadow-inner text-4xl">
+        <div className="flex h-20 w-20 items-center justify-center rounded-[24px] bg-slate-50 shadow-inner text-4xl">
           <div
             className="flex h-14 w-16 items-center justify-center rounded-2xl shadow-md"
             style={colorStyle}
@@ -81,13 +81,13 @@ export default function FolderCard({
             type="button"
             onClick={() => setShowMenu(!showMenu)}
             aria-label={`${folder.title} 더보기`}
-            className="rounded-xl p-2 text-[#64748B] transition hover:bg-[#F8FAFC] hover:text-[#0F172A] text-lg"
+            className="rounded-xl p-2 text-slate-500 transition hover:bg-slate-50 hover:text-slate-900 text-lg"
           >
             ⋯
           </button>
 
           {showMenu && (
-            <div className="absolute right-0 mt-1 w-32 rounded-xl border border-[#E2E8F0] bg-white shadow-lg z-10">
+            <div className="absolute right-0 mt-1 w-32 rounded-xl border border-gray-200 bg-white shadow-lg z-10">
               <button
                 type="button"
                 onClick={handleDelete}
@@ -100,21 +100,21 @@ export default function FolderCard({
         </div>
       </div>
 
-      <h3 className="mb-5 text-2xl font-black tracking-tight text-[#0F172A]">
+      <h3 className="mb-5 text-2xl font-black tracking-tight text-slate-900">
         {folder.title}
       </h3>
-      <div className="mb-5 h-px bg-[#E2E8F0]" />
+      <div className="mb-5 h-px bg-gray-200" />
 
       <div className="space-y-4">
-        <div className="flex items-center gap-3 text-base font-bold text-[#64748B]">
-          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#F8FAFC] text-sm">
+        <div className="flex items-center gap-3 text-base font-bold text-slate-500">
+          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-50 text-sm">
             🔖
           </span>
           <span>저장된 장소 {folder.count}개</span>
         </div>
 
-        <div className="flex items-center gap-3 text-base font-bold text-[#64748B]">
-          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#F8FAFC] text-sm">
+        <div className="flex items-center gap-3 text-base font-bold text-slate-500">
+          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-50 text-sm">
             🕐
           </span>
           <span>최근 추가: {folder.recent}</span>
