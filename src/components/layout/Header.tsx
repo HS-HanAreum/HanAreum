@@ -5,7 +5,7 @@ import { LogoIcon, UserIcon } from '@/components/icons';
 const NAV_ITEMS: { label: string; href?: string }[] = [
   { label: '홈', href: '/' },
   { label: '북마크', href: '/bookmarks' },
-  { label: '동선 리스트' }, // 동선 페이지 준비 중 (최유미 담당)
+  { label: '동선 리스트', href: '/routes' },
   { label: '마이페이지', href: '/mypage' },
 ];
 
