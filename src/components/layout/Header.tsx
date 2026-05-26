@@ -1,16 +1,13 @@
 import Link from 'next/link';
 import { LogoIcon, UserIcon } from '@/components/icons';
 
-// 상단 메뉴. href 가 있는 항목만 해당 페이지로 이동하고, 나머지는 아직 준비 중(시각용).
+// 상단 메뉴. href 가 있으면 해당 페이지로 이동하고, 없으면 아직 페이지가 없어 "준비 중"으로 표시한다.
 const NAV_ITEMS: { label: string; href?: string }[] = [
-  { label: '홈' },
-  { label: '북마크' },
+  { label: '홈', href: '/' },
+  { label: '북마크', href: '/bookmarks' },
   { label: '동선 리스트', href: '/routes' },
-  { label: '마이페이지' },
+  { label: '마이페이지', href: '/mypage' },
 ];
-
-// 메뉴 항목 공통 스타일 (링크/버튼 모두 동일하게 보이도록).
-const NAV_ITEM_CLASS = 'hidden rounded px-2 py-1 text-sm text-slate-600 hover:text-blue-500 sm:inline';
 
 export default function Header() {
   return (
@@ -23,25 +20,33 @@ export default function Header() {
         </div>
 
         <nav className="flex items-center gap-1 sm:gap-3">
-          {NAV_ITEMS.map(({ label, href }) =>
-            href ? (
-              <Link key={label} href={href} className={NAV_ITEM_CLASS}>
-                {label}
+          {NAV_ITEMS.map((item) =>
+            item.href ? (
+              <Link
+                key={item.label}
+                href={item.href}
+                className="hidden rounded px-2 py-1 text-sm text-slate-600 hover:text-blue-500 sm:inline"
+              >
+                {item.label}
               </Link>
             ) : (
-              <button key={label} type="button" title="준비 중" className={NAV_ITEM_CLASS}>
-                {label}
+              <button
+                key={item.label}
+                type="button"
+                title="준비 중"
+                className="hidden cursor-default rounded px-2 py-1 text-sm text-slate-400 sm:inline"
+              >
+                {item.label}
               </button>
             ),
           )}
-          <button
-            type="button"
-            title="로그인 (준비 중)"
+          <Link
+            href="/login"
             className="flex items-center gap-1 rounded-lg bg-blue-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-600"
           >
             <UserIcon className="h-4 w-4" />
             로그인
-          </button>
+          </Link>
         </nav>
       </div>
     </header>

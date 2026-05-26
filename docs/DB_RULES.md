@@ -114,6 +114,26 @@ place_id uuid
 order_index integer
 ```
 
+### review_likes
+
+```sql
+id uuid primary key
+user_id uuid
+review_id uuid
+created_at timestamp
+unique (user_id, review_id)
+```
+
+### route_likes
+
+```sql
+id uuid primary key
+user_id uuid
+route_id uuid
+created_at timestamp
+unique (user_id, route_id)
+```
+
 ---
 
 ## 4. provider 규칙

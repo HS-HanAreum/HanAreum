@@ -266,3 +266,71 @@ create policy route_places_delete_own on public.route_places
         and r.user_id = auth.uid()
     )
   );
+
+-- =========================================================
+-- 5. 좋아요 (리뷰 / 동선)
+--    리뷰·동선 좋아요는 사용자별 1회. unique 로 중복 방지.
+-- =========================================================
+
+-- 리뷰 좋아요
+create table if not exists public.review_likes (
+  id         uuid primary key default gen_random_uuid(),
+  user_id    uuid not null references public.users (id) on delete cascade,
+  review_id  uuid not null references public.reviews (id) on delete cascade,
+  created_at timestamptz not null default now(),
+  unique (user_id, review_id)
+);
+
+-- 동선 좋아요
+create table if not exists public.route_likes (
+  id         uuid primary key default gen_random_uuid(),
+  user_id    uuid not null references public.users (id) on delete cascade,
+  route_id   uuid not null references public.routes (id) on delete cascade,
+  created_at timestamptz not null default now(),
+  unique (user_id, route_id)
+);
+
+create index if not exists idx_review_likes_review_id on public.review_likes (review_id);
+create index if not exists idx_route_likes_route_id   on public.route_likes (route_id);
+
+-- review_likes: 리뷰는 공개 표시 -> 누구나 읽기, 추가/삭제는 본인만
+alter table public.review_likes enable row level security;
+
+drop policy if exists review_likes_select_all on public.review_likes;
+create policy review_likes_select_all on public.review_likes
+  for select
+  using (true);
+
+drop policy if exists review_likes_insert_own on public.review_likes;
+create policy review_likes_insert_own on public.review_likes
+  for insert to authenticated
+  with check (user_id = auth.uid());
+
+drop policy if exists review_likes_delete_own on public.review_likes;
+create policy review_likes_delete_own on public.review_likes
+  for delete to authenticated
+  using (user_id = auth.uid());
+
+-- route_likes: 볼 수 있는 동선(공개 또는 본인)만 읽기, 추가/삭제는 본인만
+alter table public.route_likes enable row level security;
+
+drop policy if exists route_likes_select on public.route_likes;
+create policy route_likes_select on public.route_likes
+  for select
+  using (
+    exists (
+      select 1 from public.routes r
+      where r.id = route_likes.route_id
+        and (r.is_public = true or r.user_id = auth.uid())
+    )
+  );
+
+drop policy if exists route_likes_insert_own on public.route_likes;
+create policy route_likes_insert_own on public.route_likes
+  for insert to authenticated
+  with check (user_id = auth.uid());
+
+drop policy if exists route_likes_delete_own on public.route_likes;
+create policy route_likes_delete_own on public.route_likes
+  for delete to authenticated
+  using (user_id = auth.uid());
