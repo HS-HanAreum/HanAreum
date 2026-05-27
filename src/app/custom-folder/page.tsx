@@ -1,12 +1,30 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import Header from "@/components/layout/Header";
 import FolderList from "@/components/bookmarks/FolderList";
 import FolderCreateModal from "@/components/bookmarks/FolderModal";
 import EmptyFolderState from "@/components/bookmarks/EmptyFolderState";
-import { CustomFolder } from "@/types/bookmark";
+import { CustomFolder, FolderIconType } from "@/types/bookmark";
 import { filterFolderList, FOLDER_COLORS_EXPORT } from "@/lib/folderUtils";
+import { supabase } from "@/lib/supabase";
+
+// Supabase bookmark_folders 조회 행 타입
+interface FolderRow {
+  id: string;
+  name: string;
+  icon: string;
+  created_at: string;
+}
+
+// 폴더 목록의 색을 화면 순서대로 다시 매긴다 (생성/삭제 후 색이 밀리지 않도록).
+function withOrderedColors(folders: CustomFolder[]): CustomFolder[] {
+  return folders.map((folder, index) => ({
+    ...folder,
+    colorIndex: index % FOLDER_COLORS_EXPORT.length,
+  }));
+}
 
 const SCROLL_SMOOTHNESS = 0.12;
 const SCROLL_ANIMATION_THRESHOLD = 0.001;
@@ -14,6 +32,8 @@ const SCROLL_BAR_TRAVEL_DISTANCE = 320;
 
 export default function CustomFolderPage(): React.ReactElement {
   const [folders, setFolders] = useState<CustomFolder[]>([]);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [loggedIn, setLoggedIn] = useState<boolean | null>(null); // null = 확인 중
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [query, setQuery] = useState<string>("");
   const [scrollProgress, setScrollProgress] = useState<number>(0);
@@ -23,22 +43,99 @@ export default function CustomFolderPage(): React.ReactElement {
     return filterFolderList(folders, query);
   }, [folders, query]);
 
-  const handleCreateFolder = (newFolder: CustomFolder): void => {
-    setFolders((currentFolders) => {
-      const colorIndex = currentFolders.length % FOLDER_COLORS_EXPORT.length;
-      return [
+  // 마운트 시: 로그인 사용자의 폴더 목록을 Supabase 에서 불러온다.
+  // 폴더별 저장 장소 수(count)는 내 북마크의 folder_id 를 세어 계산한다.
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      const { data: session } = await supabase.auth.getSession();
+      const uid = session.session?.user.id ?? null;
+      if (!active) return;
+      setUserId(uid);
+      if (!uid) {
+        setLoggedIn(false);
+        return;
+      }
+      setLoggedIn(true);
+
+      const [folderResult, bookmarkResult] = await Promise.all([
+        supabase
+          .from("bookmark_folders")
+          .select("id, name, icon, created_at")
+          .eq("user_id", uid)
+          .order("created_at", { ascending: false }),
+        supabase.from("bookmarks").select("folder_id").eq("user_id", uid),
+      ]);
+      if (!active) return;
+
+      const countByFolder = new Map<string, number>();
+      const bookmarkRows = (bookmarkResult.data ?? []) as { folder_id: string | null }[];
+      for (const row of bookmarkRows) {
+        if (row.folder_id) {
+          countByFolder.set(row.folder_id, (countByFolder.get(row.folder_id) ?? 0) + 1);
+        }
+      }
+
+      const folderRows = (folderResult.data ?? []) as FolderRow[];
+      setFolders(
+        withOrderedColors(
+          folderRows.map((row) => ({
+            id: row.id,
+            title: row.name,
+            icon: (row.icon as FolderIconType) ?? "folder",
+            colorIndex: 0,
+            count: countByFolder.get(row.id) ?? 0,
+            recent: "아직 없음",
+          }))
+        )
+      );
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const handleCreateFolder = async (newFolder: CustomFolder): Promise<void> => {
+    if (!userId) {
+      alert("로그인 후 폴더를 만들 수 있어요.");
+      return;
+    }
+    const { data, error } = await supabase
+      .from("bookmark_folders")
+      .insert({ user_id: userId, name: newFolder.title, icon: newFolder.icon })
+      .select("id, name, icon")
+      .single();
+    if (error || !data) {
+      alert("폴더 저장에 실패했어요. 잠시 후 다시 시도해주세요.");
+      return;
+    }
+    const created = data as { id: string; name: string; icon: string };
+    setFolders((currentFolders) =>
+      withOrderedColors([
         {
-          ...newFolder,
-          colorIndex: colorIndex,
+          id: created.id,
+          title: created.name,
+          icon: (created.icon as FolderIconType) ?? "folder",
+          colorIndex: 0,
+          count: 0,
+          recent: "아직 없음",
         },
         ...currentFolders,
-      ];
-    });
+      ])
+    );
   };
 
-  const handleDeleteFolder = (folderId: number): void => {
+  const handleDeleteFolder = async (folderId: string): Promise<void> => {
+    const { error } = await supabase
+      .from("bookmark_folders")
+      .delete()
+      .eq("id", folderId);
+    if (error) {
+      alert("폴더 삭제에 실패했어요. 잠시 후 다시 시도해주세요.");
+      return;
+    }
     setFolders((currentFolders) =>
-      currentFolders.filter((folder) => folder.id !== folderId)
+      withOrderedColors(currentFolders.filter((folder) => folder.id !== folderId))
     );
   };
 
@@ -154,7 +251,23 @@ export default function CustomFolderPage(): React.ReactElement {
           </div>
         </section>
 
-        {visibleFolders.length > 0 ? (
+        {loggedIn === false ? (
+          <section className="rounded-2xl border border-dashed border-gray-200 bg-white p-16 text-center shadow-sm">
+            <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-[28px] bg-blue-100 text-5xl">
+              🔒
+            </div>
+            <h2 className="text-3xl font-black text-slate-900">로그인 후 이용할 수 있어요</h2>
+            <p className="mt-4 text-lg font-semibold text-slate-500">
+              나만의 커스텀 폴더는 로그인한 뒤에 만들고 저장할 수 있어요.
+            </p>
+            <Link
+              href="/login"
+              className="mx-auto mt-8 inline-flex h-14 items-center gap-2 rounded-2xl bg-blue-600 px-7 text-lg font-black text-white shadow-lg shadow-blue-200 transition hover:-translate-y-0.5"
+            >
+              로그인하러 가기
+            </Link>
+          </section>
+        ) : visibleFolders.length > 0 ? (
           <FolderList folders={visibleFolders} onDeleteFolder={handleDeleteFolder} />
         ) : (
           <EmptyFolderState
