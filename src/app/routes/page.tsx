@@ -4,21 +4,20 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Header from '@/components/layout/Header';
 import RouteMap from '@/components/routes/RouteMap';
+import { supabase } from '@/lib/supabase';
 import type { Place, PlaceSearchResult } from '@/types/place';
 import type { RoutePlace, SavedRoute } from '@/types/route';
 
 // 나만의 동선 만들기 페이지.
 // 장소 검색은 프론트 → /api/places/search → Kakao Local API 흐름만 사용한다(키는 서버에만 둔다).
 // 지도는 실제 Kakao 지도이며, 연결선(Polyline)은 길찾기 경로가 아니라 좌표를 순서대로 잇는 MVP 표시용이다.
-// 저장은 아직 localStorage 만 사용한다(Supabase 저장은 이번 작업 범위 아님).
+// 저장은 로그인한 사용자의 Supabase(routes/route_places/places) 에만 한다. 보호는 DB 의 RLS 가 담당한다.
+// 비로그인 상태에서는 검색·미리보기는 되지만 저장은 막고 로그인 안내만 보여준다.
 
 // 한성대학교 중심 좌표 (검색 기준점이자 지도 기본 중심)
 const HANSUNG_UNIV = { lat: 37.5826, lng: 127.0103 };
 const SEARCH_RADIUS = 2000; // 검색 반경(m)
 const SEARCH_SIZE = 15; // 검색 결과 개수(가까운 순)
-
-// localStorage 저장 키. 다른 기능과 겹치지 않도록 접두어를 붙인다.
-const STORAGE_KEY = 'hanareum.routes';
 
 // 동선 이름 기본값
 const DEFAULT_ROUTE_NAME = '공강 시간 카페 코스';
@@ -76,6 +75,153 @@ function normalizeRoutePlace(place: RoutePlace): RoutePlace {
   };
 }
 
+// 동선들의 장소 순서를 비교하기 위한 키. providerPlaceId 를 순서대로 이어 붙인다.
+// (요구사항: 같은 장소가 같은 순서면 같은 동선으로 보고 공유 중복 저장을 막는다)
+function placesKey(places: RoutePlace[]): string {
+  return places.map((place) => place.providerPlaceId).join('|');
+}
+
+// --- 아래는 Supabase 데이터 접근 함수들 ---
+// 모두 브라우저 supabase 클라이언트(anon key)로 호출하며, 접근 제어는 DB 의 RLS 가 담당한다.
+// places 에는 UPDATE 정책이 없으므로(북마크와 동일) upsert 는 "중복이면 무시"로만 쓰고 id 는 따로 조회한다.
+
+// routes 조회 결과 행 타입 (route_places 는 to-many 배열, places 는 to-one 객체)
+interface DbPlace {
+  provider: string;
+  provider_place_id: string;
+  name: string;
+  category: string | null;
+  address: string | null;
+  lat: number | null;
+  lng: number | null;
+  place_url: string | null;
+}
+interface DbRoutePlace {
+  order_index: number;
+  places: DbPlace | null;
+}
+interface DbRouteRow {
+  id: string;
+  title: string;
+  route_places: DbRoutePlace[];
+}
+
+// 선택한 장소들을 places 에 보장(없으면 저장)하고 providerPlaceId → places.id(uuid) 맵을 돌려준다.
+async function ensurePlaceIds(places: RoutePlace[]): Promise<Map<string, string>> {
+  const rows = places.map((place) => ({
+    provider: place.provider,
+    provider_place_id: place.providerPlaceId,
+    name: place.name,
+    category: place.category,
+    address: place.address,
+    lat: place.lat,
+    lng: place.lng,
+    place_url: place.placeUrl,
+  }));
+  const { error: upsertError } = await supabase
+    .from('places')
+    .upsert(rows, { onConflict: 'provider,provider_place_id', ignoreDuplicates: true });
+  if (upsertError) throw upsertError;
+
+  const { data, error } = await supabase
+    .from('places')
+    .select('id, provider_place_id')
+    .eq('provider', 'kakao')
+    .in(
+      'provider_place_id',
+      places.map((place) => place.providerPlaceId),
+    );
+  if (error || !data) throw error ?? new Error('장소 조회 실패');
+
+  const map = new Map<string, string>();
+  for (const row of data as { id: string; provider_place_id: string }[]) {
+    map.set(row.provider_place_id, row.id);
+  }
+  return map;
+}
+
+// 로그인한 사용자의 저장된 동선을 장소 순서대로 복원해서 돌려준다.
+async function loadRoutesFromSupabase(uid: string): Promise<SavedRoute[]> {
+  const { data, error } = await supabase
+    .from('routes')
+    .select(
+      'id, title, route_places ( order_index, places ( provider, provider_place_id, name, category, address, lat, lng, place_url ) )',
+    )
+    .eq('user_id', uid)
+    .order('created_at', { ascending: false });
+  if (error || !data) throw error ?? new Error('동선 조회 실패');
+
+  const list = data as unknown as DbRouteRow[];
+  return list.map((row) => ({
+    id: row.id,
+    name: row.title,
+    places: [...(row.route_places ?? [])]
+      .sort((a, b) => a.order_index - b.order_index)
+      .map((rp) => rp.places)
+      .filter((place): place is DbPlace => place !== null)
+      .map((place) => ({
+        provider: 'kakao' as const,
+        providerPlaceId: place.provider_place_id,
+        name: place.name,
+        address: place.address ?? '',
+        category: place.category ?? '',
+        lat: place.lat ?? 0,
+        lng: place.lng ?? 0,
+        placeUrl: place.place_url ?? '',
+      })),
+  }));
+}
+
+// 새 동선 저장: places 보장 → routes insert → route_places insert (order_index 순서대로).
+async function insertRoute(name: string, places: RoutePlace[], uid: string): Promise<void> {
+  const placeIdMap = await ensurePlaceIds(places);
+  const { data: routeRow, error: routeError } = await supabase
+    .from('routes')
+    .insert({ user_id: uid, title: name, description: null, is_public: false })
+    .select('id')
+    .single();
+  if (routeError || !routeRow) throw routeError ?? new Error('동선 저장 실패');
+
+  const routeId = routeRow.id as string;
+  const routePlaces = places.map((place, index) => {
+    const placeId = placeIdMap.get(place.providerPlaceId);
+    if (!placeId) throw new Error('장소 매핑 실패');
+    return { route_id: routeId, place_id: placeId, order_index: index };
+  });
+  const { error: rpError } = await supabase.from('route_places').insert(routePlaces);
+  if (rpError) throw rpError;
+}
+
+// 동선 수정: title 업데이트 → 기존 route_places 삭제 → 현재 장소들로 다시 insert.
+async function updateRoute(routeId: string, name: string, places: RoutePlace[]): Promise<void> {
+  const placeIdMap = await ensurePlaceIds(places);
+  const { error: updateError } = await supabase
+    .from('routes')
+    .update({ title: name })
+    .eq('id', routeId);
+  if (updateError) throw updateError;
+
+  const { error: deleteError } = await supabase
+    .from('route_places')
+    .delete()
+    .eq('route_id', routeId);
+  if (deleteError) throw deleteError;
+
+  const routePlaces = places.map((place, index) => {
+    const placeId = placeIdMap.get(place.providerPlaceId);
+    if (!placeId) throw new Error('장소 매핑 실패');
+    return { route_id: routeId, place_id: placeId, order_index: index };
+  });
+  const { error: rpError } = await supabase.from('route_places').insert(routePlaces);
+  if (rpError) throw rpError;
+}
+
+// 동선 삭제: routes 만 삭제하면 route_places 는 DB on delete cascade 로 함께 삭제된다.
+async function deleteRoute(routeId: string): Promise<void> {
+  const { error } = await supabase.from('routes').delete().eq('id', routeId);
+  if (error) throw error;
+}
+
 export default function RoutesPage() {
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState<CategoryLabel>('전체');
@@ -88,64 +234,85 @@ export default function RoutesPage() {
   const [savedRoutes, setSavedRoutes] = useState<SavedRoute[]>([]);
   const [shareUrl, setShareUrl] = useState('');
   const [copied, setCopied] = useState(false);
-  const [sharedNotice, setSharedNotice] = useState(false);
-  const [loaded, setLoaded] = useState(false); // localStorage 로딩 완료 여부
+  // 공유 안내: 'saved' = 계정에 저장됨, 'login' = 로그인 후 저장 가능, null = 안내 없음
+  const [sharedNotice, setSharedNotice] = useState<'saved' | 'login' | null>(null);
+  const [loaded, setLoaded] = useState(false); // 저장된 동선 로딩 완료 여부
   const [editingId, setEditingId] = useState<string | null>(null); // 수정 중인 저장 동선 id (null 이면 일반 모드)
+  const [userId, setUserId] = useState<string | null>(null); // 로그인한 사용자 id (없으면 비로그인)
+  const [loggedIn, setLoggedIn] = useState<boolean | null>(null); // null = 확인 중
+  const [pending, setPending] = useState(false); // 저장/수정/삭제 진행 중(중복 클릭 방지)
 
-  // 첫 진입 시: 저장된 동선을 불러오고, 공유 링크로 들어온 경우 동선을 자동으로 반영/저장한다.
-  // 마운트 시 localStorage/URL(브라우저 전용 외부 상태)을 한 번 읽어 초기화하는 용도라
-  // effect 안에서 setState 가 필요하다. (SSR 에서는 접근 불가라 lazy 초기화로 대체할 수 없음)
+  // 첫 진입 시: 로그인 사용자를 확인하고, 로그인 상태면 저장된 동선을 Supabase 에서 불러온다.
+  // 공유 링크(?route=)로 들어온 경우 동선을 미리보기에 복원하고, 로그인 상태면 내 계정에 자동 저장한다.
   useEffect(() => {
-    /* eslint-disable react-hooks/set-state-in-effect */
-    let initialSaved: SavedRoute[] = [];
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) initialSaved = JSON.parse(raw) as SavedRoute[];
-    } catch {
-      initialSaved = [];
-    }
+    let active = true;
+    (async () => {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const uid = sessionData.session?.user.id ?? null;
+      if (!active) return;
+      setUserId(uid);
+      setLoggedIn(uid !== null);
 
-    // 공유 링크 query string 읽기 (?route=<URL 인코딩된 JSON>)
-    // 실제 Kakao 장소는 id 만으로 복원할 수 없어 장소 정보를 통째로 직렬화해 담는다.
-    const params = new URLSearchParams(window.location.search);
-    const routeParam = params.get('route');
-    if (routeParam) {
-      try {
-        const decoded = JSON.parse(decodeURIComponent(routeParam)) as {
-          name?: string;
-          places?: unknown[];
-        };
-        const places = (decoded.places ?? [])
-          .filter(isValidRoutePlace)
-          .map(normalizeRoutePlace);
-
-        if (places.length > 0) {
-          const sharedName = decoded.name?.trim() || '공유받은 동선';
-          setSelectedPlaces(places);
-          setRouteName(sharedName);
-          setSharedNotice(true);
-
-          // 같은 공유 동선이 아직 없으면 저장된 동선에 자동 추가 (중복 추가 방지)
-          const sharedId = `shared-${places.map((place) => place.providerPlaceId).join('-')}`;
-          if (!initialSaved.some((route) => route.id === sharedId)) {
-            initialSaved = [{ id: sharedId, name: sharedName, places }, ...initialSaved];
-          }
+      // 로그인 상태면 내 동선 목록을 먼저 불러온다 (공유 중복 판정에도 사용).
+      let currentSaved: SavedRoute[] = [];
+      if (uid) {
+        try {
+          currentSaved = await loadRoutesFromSupabase(uid);
+        } catch {
+          currentSaved = [];
         }
-      } catch {
-        // 잘못된 공유 링크는 무시한다
+        if (!active) return;
       }
-    }
 
-    setSavedRoutes(initialSaved);
-    setLoaded(true);
-    /* eslint-enable react-hooks/set-state-in-effect */
+      // 공유 링크 query string 읽기 (?route=<URL 인코딩된 JSON>)
+      // 실제 Kakao 장소는 id 만으로 복원할 수 없어 장소 정보를 통째로 직렬화해 담는다.
+      const params = new URLSearchParams(window.location.search);
+      const routeParam = params.get('route');
+      if (routeParam) {
+        try {
+          const decoded = JSON.parse(decodeURIComponent(routeParam)) as {
+            name?: string;
+            places?: unknown[];
+          };
+          const places = (decoded.places ?? []).filter(isValidRoutePlace).map(normalizeRoutePlace);
+
+          if (places.length > 0) {
+            const sharedName = decoded.name?.trim() || '공유받은 동선';
+            setSelectedPlaces(places);
+            setRouteName(sharedName);
+
+            if (uid) {
+              // 같은 장소가 같은 순서인 동선이 이미 있으면 중복 저장하지 않는다.
+              const incomingKey = placesKey(places);
+              const exists = currentSaved.some((route) => placesKey(route.places) === incomingKey);
+              if (!exists) {
+                try {
+                  await insertRoute(sharedName, places, uid);
+                  currentSaved = await loadRoutesFromSupabase(uid);
+                } catch {
+                  // 저장 실패 시에도 미리보기는 그대로 둔다
+                }
+              }
+              if (!active) return;
+              setSharedNotice('saved');
+            } else {
+              // 비로그인: 저장하지 않고 미리보기 + 로그인 안내만 보여준다
+              setSharedNotice('login');
+            }
+          }
+        } catch {
+          // 잘못된 공유 링크는 무시한다
+        }
+      }
+
+      if (!active) return;
+      setSavedRoutes(currentSaved);
+      setLoaded(true);
+    })();
+    return () => {
+      active = false;
+    };
   }, []);
-
-  // 저장된 동선이 바뀔 때마다 localStorage 에 저장한다 (첫 로딩 전에는 덮어쓰지 않는다).
-  useEffect(() => {
-    if (!loaded) return;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(savedRoutes));
-  }, [savedRoutes, loaded]);
 
   // 키워드로 한성대 주변 장소를 검색한다 (프론트 → /api/places/search → Kakao Local API).
   async function runSearch(keyword: string) {
@@ -224,36 +391,50 @@ export default function RoutesPage() {
     return routeName.trim() || '이름 없는 동선';
   }
 
-  // [동선 추가하기] 현재 선택한 동선을 새 동선으로 저장한다. 기존 동선은 그대로 둔다.
-  // 수정 모드 여부와 관계없이 항상 새 id 로 추가하므로 중복 저장되지 않는다.
-  function handleAddRoute() {
+  // [동선 추가하기] 현재 선택한 동선을 로그인한 사용자 계정(Supabase)에 새 동선으로 저장한다.
+  async function handleAddRoute() {
     if (selectedPlaces.length < 2) {
       alert('동선을 저장하려면 장소를 2개 이상 선택해야 합니다.');
       return;
     }
-    const route: SavedRoute = {
-      id: `route-${Date.now()}`,
-      name: currentRouteName(),
-      places: selectedPlaces,
-    };
-    setSavedRoutes((prev) => [route, ...prev]);
+    if (!userId) {
+      alert('로그인 후 동선을 저장할 수 있습니다.');
+      return;
+    }
+    if (pending) return;
+    setPending(true);
+    try {
+      await insertRoute(currentRouteName(), selectedPlaces, userId);
+      setSavedRoutes(await loadRoutesFromSupabase(userId));
+    } catch {
+      alert('동선 저장에 실패했습니다. 잠시 후 다시 시도해주세요.');
+    } finally {
+      setPending(false);
+    }
   }
 
-  // [수정 완료] 수정 모드에서 기존 동선(editingId)을 현재 선택 내용으로 덮어쓴다.
-  // 같은 id 를 유지하며 내용만 교체하므로 동선이 중복으로 늘어나지 않는다.
-  function handleUpdate() {
+  // [수정 완료] 수정 모드에서 기존 동선(editingId)을 현재 선택 내용으로 덮어쓴다(Supabase).
+  async function handleUpdate() {
     if (editingId === null) return;
     if (selectedPlaces.length < 2) {
       alert('동선을 저장하려면 장소를 2개 이상 선택해야 합니다.');
       return;
     }
-    const updatedName = currentRouteName();
-    setSavedRoutes((prev) =>
-      prev.map((route) =>
-        route.id === editingId ? { ...route, name: updatedName, places: selectedPlaces } : route,
-      ),
-    );
-    setEditingId(null);
+    if (!userId) {
+      alert('로그인 후 동선을 저장할 수 있습니다.');
+      return;
+    }
+    if (pending) return;
+    setPending(true);
+    try {
+      await updateRoute(editingId, currentRouteName(), selectedPlaces);
+      setSavedRoutes(await loadRoutesFromSupabase(userId));
+      setEditingId(null);
+    } catch {
+      alert('동선 수정에 실패했습니다. 잠시 후 다시 시도해주세요.');
+    } finally {
+      setPending(false);
+    }
   }
 
   // 저장된 동선 카드를 클릭하면 그 동선을 선택 영역으로 불러오고 수정 모드로 전환한다.
@@ -262,14 +443,24 @@ export default function RoutesPage() {
     setRouteName(route.name);
     setEditingId(route.id);
     setShareUrl('');
-    setSharedNotice(false);
+    setSharedNotice(null);
   }
 
-  // [삭제] confirm 후 해당 동선을 목록에서 제거한다. 수정 중이던 동선이면 수정 모드도 해제.
-  function handleDelete(id: string) {
+  // [삭제] confirm 후 해당 동선을 Supabase 에서 삭제한다(route_places 는 cascade 로 함께 삭제).
+  async function handleDelete(id: string) {
     if (!window.confirm('이 동선을 삭제하시겠습니까?')) return;
-    setSavedRoutes((prev) => prev.filter((route) => route.id !== id));
-    if (editingId === id) setEditingId(null);
+    if (!userId) return;
+    if (pending) return;
+    setPending(true);
+    try {
+      await deleteRoute(id);
+      setSavedRoutes(await loadRoutesFromSupabase(userId));
+      if (editingId === id) setEditingId(null);
+    } catch {
+      alert('동선 삭제에 실패했습니다. 잠시 후 다시 시도해주세요.');
+    } finally {
+      setPending(false);
+    }
   }
 
   // [수정 취소] 저장된 데이터는 건드리지 않고 수정 모드만 해제한다 (현재 선택 상태는 유지).
@@ -328,13 +519,17 @@ export default function RoutesPage() {
           한성대 주변 장소를 검색해 순서대로 담고, 나만의 동선을 저장하거나 공유 링크를 만들어보세요.
         </p>
 
-        {/* 공유 링크로 접속했을 때 안내 */}
+        {/* 공유 링크로 접속했을 때 안내 (로그인: 저장됨 / 비로그인: 로그인 안내) */}
         {sharedNotice && (
           <div className="mt-4 flex items-center justify-between gap-3 rounded-xl border border-[#3B82F6] bg-[#B6EEFF]/40 px-4 py-3 text-sm text-[#0F172A]">
-            <span>공유받은 동선이 저장된 동선에 추가되었습니다.</span>
+            <span>
+              {sharedNotice === 'saved'
+                ? '공유받은 동선이 저장된 동선에 추가되었습니다.'
+                : '로그인 후 공유받은 동선을 저장할 수 있습니다.'}
+            </span>
             <button
               type="button"
-              onClick={() => setSharedNotice(false)}
+              onClick={() => setSharedNotice(null)}
               className="shrink-0 text-[#64748B] hover:text-[#0F172A]"
               aria-label="안내 닫기"
             >
@@ -590,6 +785,10 @@ export default function RoutesPage() {
                 <div className="mt-3 flex flex-col gap-2">
                   {!loaded ? (
                     <p className="text-sm text-[#94A3B8]">불러오는 중...</p>
+                  ) : loggedIn === false ? (
+                    <p className="rounded-xl border border-dashed border-[#E2E8F0] bg-[#F8FAFC] p-6 text-center text-sm text-[#94A3B8]">
+                      로그인 후 동선을 저장할 수 있습니다.
+                    </p>
                   ) : savedRoutes.length === 0 ? (
                     <p className="rounded-xl border border-dashed border-[#E2E8F0] bg-[#F8FAFC] p-6 text-center text-sm text-[#94A3B8]">
                       아직 저장된 동선이 없습니다.

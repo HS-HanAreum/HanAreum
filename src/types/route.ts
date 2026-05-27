@@ -1,7 +1,7 @@
 // 동선(나만의 코스) 저장에 쓰는 타입.
 // 장소 검색 결과(@/types/place 의 Place)에서 동선 저장에 꼭 필요한 필드만 추린다.
-// 나중에 Supabase routes / route_places / places 테이블로 옮기기 쉽도록
-// 중첩 없이 평평한 구조로 둔다. (이번 작업에서는 localStorage 에만 저장한다)
+// Supabase routes / route_places / places 테이블과 매핑하기 쉽도록 중첩 없이 평평한 구조로 둔다.
+// (SavedRoute.id 는 routes.id(uuid), RoutePlace 는 places 행에서 동선 표시에 필요한 필드만 담는다)
 
 export interface RoutePlace {
   provider: 'kakao'; // 검색 제공자. 현재는 항상 'kakao'
