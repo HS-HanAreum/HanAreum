@@ -49,7 +49,8 @@ export function createFolderData(
   }
 
   return {
-    id: Date.now(),
+    // 임시 id (모달 표시용). 실제 저장 시에는 Supabase 가 발급한 uuid 로 교체된다.
+    id: String(Date.now()),
     title: safeTitle,
     count: 0,
     recent: "아직 없음",
