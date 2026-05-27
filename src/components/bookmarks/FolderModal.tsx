@@ -37,7 +37,7 @@ export default function FolderCreateModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0F172A]/45 px-6 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 px-6 backdrop-blur-sm">
       <style>{`
         @keyframes slideInUp {
           from {
@@ -53,14 +53,14 @@ export default function FolderCreateModal({
           animation: slideInUp 0.3s ease-out;
         }
       `}</style>
-      <section className="modal-content w-full max-w-[640px] rounded-[32px] border border-[#E2E8F0] bg-white p-8 shadow-2xl shadow-slate-900/20"
+      <section className="modal-content w-full max-w-[640px] rounded-[32px] border border-gray-200 bg-white p-8 shadow-2xl shadow-slate-900/20"
       >
         <div className="mb-7 flex items-center justify-between">
           <div>
-            <h2 className="text-3xl font-black tracking-tight text-[#0F172A]">
+            <h2 className="text-3xl font-black tracking-tight text-slate-900">
               새 폴더 만들기
             </h2>
-            <p className="mt-2 text-base font-semibold text-[#64748B]">
+            <p className="mt-2 text-base font-semibold text-slate-500">
               저장할 장소를 목적에 맞게 분류해보세요.
             </p>
           </div>
@@ -69,7 +69,7 @@ export default function FolderCreateModal({
             type="button"
             onClick={onClose}
             aria-label="모달 닫기"
-            className="flex h-11 w-11 items-center justify-center rounded-2xl text-[#64748B] transition hover:bg-[#F8FAFC] hover:text-[#0F172A] text-2xl"
+            className="flex h-11 w-11 items-center justify-center rounded-2xl text-slate-500 transition hover:bg-slate-50 hover:text-slate-900 text-2xl"
           >
             ✕
           </button>
@@ -77,7 +77,7 @@ export default function FolderCreateModal({
 
         <div className="space-y-7">
           <label className="block">
-            <span className="mb-3 block text-base font-black text-[#0F172A]">
+            <span className="mb-3 block text-base font-black text-slate-900">
               폴더 이름
             </span>
             <input
@@ -86,23 +86,23 @@ export default function FolderCreateModal({
                 setFolderName(event.target.value);
               }}
               onKeyDown={handleKeyDown}
-              className="h-14 w-full rounded-2xl border border-[#E2E8F0] bg-white px-5 text-base font-bold text-[#0F172A] outline-none transition placeholder:text-[#94A3B8] focus:border-[#3B82F6] focus:ring-4 focus:ring-[#3B82F6]/15"
+              className="h-14 w-full rounded-2xl border border-gray-200 bg-white px-5 text-base font-bold text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-600 focus:ring-4 focus:ring-blue-600/15"
               placeholder="예: 혼밥 맛집, 카공 장소, 술약 장소"
               autoFocus
             />
           </label>
 
           <div>
-            <div className="mb-3 text-base font-black text-[#0F172A]">
+            <div className="mb-3 text-base font-black text-slate-900">
               아이콘 선택
             </div>
             <div className="grid grid-cols-5 gap-3">
               {ICON_OPTIONS.map((option) => {
                 const isSelected = selectedIcon === option.value;
                 const selectedClass =
-                  "border-2 border-[#3B82F6] text-[#3B82F6] shadow-md shadow-blue-100";
+                  "border-2 border-blue-600 text-blue-600 shadow-md shadow-blue-100";
                 const defaultClass =
-                  "border-[#E2E8F0] text-[#64748B] hover:border-[#B6EEFF]";
+                  "border-gray-200 text-slate-500 hover:border-blue-200";
 
                 return (
                   <button
@@ -128,7 +128,7 @@ export default function FolderCreateModal({
           <button
             type="button"
             onClick={onClose}
-            className="h-14 rounded-2xl border border-[#E2E8F0] bg-white text-lg font-black text-[#64748B] transition hover:bg-[#F8FAFC]"
+            className="h-14 rounded-2xl border border-gray-200 bg-white text-lg font-black text-slate-500 transition hover:bg-slate-50"
           >
             취소
           </button>
@@ -137,7 +137,7 @@ export default function FolderCreateModal({
             type="button"
             onClick={handleCreate}
             disabled={folderName.trim().length === 0}
-            className="h-14 rounded-2xl bg-[#3B82F6] text-lg font-black text-white shadow-lg shadow-blue-200 transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:bg-[#94A3B8] disabled:shadow-none disabled:hover:translate-y-0"
+            className="h-14 rounded-2xl bg-blue-600 text-lg font-black text-white shadow-lg shadow-blue-200 transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:bg-slate-400 disabled:shadow-none disabled:hover:translate-y-0"
           >
             만들기
           </button>
