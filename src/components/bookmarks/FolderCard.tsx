@@ -26,7 +26,7 @@ const FOLDER_COLORS = [
 ];
 
 interface FolderCardWithDeleteProps extends FolderCardProps {
-  onDelete: (folderId: number) => void;
+  onDelete: (folderId: string) => void;
 }
 
 export default function FolderCard({
