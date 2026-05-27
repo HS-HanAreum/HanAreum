@@ -5,7 +5,7 @@ import FolderCard from "./FolderCard";
 
 interface FolderListProps {
   folders: CustomFolder[];
-  onDeleteFolder: (folderId: number) => void;
+  onDeleteFolder: (folderId: string) => void;
 }
 
 export default function FolderList({
