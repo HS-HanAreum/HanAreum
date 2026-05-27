@@ -41,5 +41,8 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# Next.js 검증 파일은 .next/types 에 생성된다. root types/validator.ts 는 잔여물이라 추적 제외
+/types/validator.ts
+
 # 팀 git 테스트용 스크래치 파일 (추적 금지)
 src/test.txt
