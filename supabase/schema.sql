@@ -33,12 +33,19 @@ create table if not exists public.places (
 );
 
 -- 북마크 폴더 (사용자별 커스텀 분류)
+-- icon: 폴더 카드에 표시할 아이콘 키 (folder/coffee/book/food/star). 기본값 'folder'.
 create table if not exists public.bookmark_folders (
   id         uuid primary key default gen_random_uuid(),
   user_id    uuid not null references public.users (id) on delete cascade,
   name       text not null,
+  icon       text not null default 'folder',
   created_at timestamptz not null default now()
 );
+
+-- (컬럼 추가) 이미 만들어진 bookmark_folders 테이블에도 icon 컬럼을 반영한다.
+-- create table 은 "없을 때만" 생성하므로, 기존 DB 에는 이 alter 로만 컬럼이 추가된다.
+alter table public.bookmark_folders
+  add column if not exists icon text not null default 'folder';
 
 -- 북마크
 create table if not exists public.bookmarks (

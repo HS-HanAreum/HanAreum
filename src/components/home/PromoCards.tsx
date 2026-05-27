@@ -21,6 +21,7 @@ const PROMOS: Promo[] = [
     description: '나만의 폴더를 만들고 장소를 저장해보세요',
     emoji: '📂',
     bgClass: 'bg-emerald-50',
+    href: '/custom-folder',
   },
   {
     title: '동선 리스트',

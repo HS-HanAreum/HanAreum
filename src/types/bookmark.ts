@@ -1,9 +1,9 @@
 // 폴더 아이콘 타입
 export type FolderIconType = "folder" | "coffee" | "book" | "food" | "star";
 
-// 커스텀 폴더 타입
+// 커스텀 폴더 타입 (id 는 Supabase bookmark_folders 의 uuid)
 export interface CustomFolder {
-  id: number;
+  id: string;
   title: string;
   count: number;
   recent: string;

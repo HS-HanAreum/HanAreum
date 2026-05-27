@@ -2,6 +2,7 @@ import Link from 'next/link';
 import type { Place } from '@/types/place';
 import { ChevronRightIcon, StarIcon } from '@/components/icons';
 import KakaoMap from '@/components/map/KakaoMap';
+import BookmarkButton from '@/components/bookmarks/BookmarkButton';
 import PlaceImage from './PlaceImage';
 import DistanceDots, { distanceLevel, distanceLabel } from './DistanceDots';
 
@@ -161,14 +162,8 @@ export default function PlaceDetail({ place }: PlaceDetailProps) {
             </div>
 
             <div className="mt-4 space-y-2">
-              {/* 북마크/동선 기능은 별도 담당 영역이라 자리표시자 버튼으로 둔다 */}
-              <button
-                type="button"
-                title="준비 중"
-                className="w-full cursor-default rounded-lg bg-slate-100 px-4 py-2.5 text-sm font-medium text-slate-400"
-              >
-                폴더에 담기
-              </button>
+              {/* 북마크는 로그인 사용자 기준으로 Supabase 에 저장된다. 동선은 별도 담당 영역이라 자리표시자로 둔다. */}
+              <BookmarkButton place={place} variant="full" />
               <button
                 type="button"
                 title="준비 중"
