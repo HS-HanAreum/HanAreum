@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import type { Place } from '@/types/place';
 import {
-  BookmarkIcon,
   StarIcon,
   MapPinIcon,
   CoffeeIcon,
@@ -12,6 +11,7 @@ import {
   BeerIcon,
   BookIcon,
 } from '@/components/icons';
+import BookmarkButton from '@/components/bookmarks/BookmarkButton';
 import DistanceDots, { distanceLevel, distanceLabel } from './DistanceDots';
 import { savePlaceForDetail } from './placeHandoff';
 import { runWithImageLimit } from './imageQueue';
@@ -51,8 +51,6 @@ function categoryFallbackIcon(category: string) {
 }
 
 export default function PlaceCard({ place }: PlaceCardProps) {
-  // 북마크 저장은 별도 기능(담당자/DB) 영역. 지금은 시각용 토글만으로 저장되지 않는다.
-  const [bookmarked, setBookmarked] = useState(false);
   // 장소 이미지는 Naver 검색으로 보조로 가져온다 (Kakao 결과엔 사진이 없음).
   // 카드가 마운트될 때(= 화면에 보이는 카드만) "장소명 + 지역"으로 1장 요청한다.
   // 원본(imageUrl) 우선 -> 깨지면 썸네일 -> 둘 다 없으면 카테고리 대체 아이콘 순으로 떨어진다.
@@ -123,14 +121,7 @@ export default function PlaceCard({ place }: PlaceCardProps) {
           aria-label={`${place.name} 상세 보기`}
           className="absolute inset-0 z-10"
         />
-        <button
-          type="button"
-          onClick={() => setBookmarked((prev) => !prev)}
-          title="북마크 (로그인 후 저장 예정)"
-          className="absolute right-2 top-2 z-20 rounded-full bg-white/80 p-1.5 text-slate-500 hover:text-blue-500"
-        >
-          <BookmarkIcon className="h-4 w-4" filled={bookmarked} />
-        </button>
+        <BookmarkButton place={place} variant="icon" />
       </div>
 
       <div className="flex flex-1 flex-col p-3">
