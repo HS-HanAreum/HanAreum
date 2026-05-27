@@ -1,5 +1,197 @@
-<!-- BEGIN:nextjs-agent-rules -->
-# This is NOT the Next.js you know
+# AGENTS.md - HanAreum 작업 규칙
 
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
-<!-- END:nextjs-agent-rules -->
+HanAreum은 한성대학교 학생들의 공강 시간 및 방과 후 활동을 위한 장소 추천, 북마크, 리뷰, 혼잡도 확인, 동선 공유 웹 서비스다.
+팀원 대부분은 비전공자이며 AI 코딩 도구를 사용해 협업한다. 에이전트는 작게 수정하고, 요청받은 범위만 구현하고, 쉽게 설명해야 한다.
+
+## 1. 작업 전 필수 정리
+
+수정 전에 아래 내용을 먼저 짧게 정리한다.
+
+1. 이해한 작업
+2. 애매한 점 또는 가정
+3. 수정할 파일
+4. 성공 기준
+5. 검증 방법
+
+요구사항이 불명확하면 구현 전에 질문한다. 여러 해석이 가능하면 조용히 하나를 고르지 않는다.
+
+## 2. 작업 원칙
+
+- 요청받지 않은 기능을 추가하지 않는다.
+- 한 번만 쓰는 코드를 무리하게 공통화하지 않는다.
+- 미래 확장을 예상해서 복잡한 구조를 만들지 않는다.
+- 작업과 직접 관련된 파일만 수정한다.
+- 관련 없는 코드 포맷팅을 하지 않는다.
+- 기존 함수명, 파일명, 폴더 구조를 임의로 바꾸지 않는다.
+- 발견한 unrelated 문제는 고치지 말고 보고만 한다.
+- 작업은 성공 기준을 확인했을 때 끝난다. 테스트하지 못한 부분은 반드시 말한다.
+
+## 3. 보호 파일
+
+아래 파일은 바로 수정하지 않고 먼저 제안한다.
+
+- `src/app/api/**`
+- `src/lib/**`
+- `supabase/schema.sql`
+- `.env.example`
+- `package.json`
+- 배포 설정 파일
+
+제안 형식:
+
+```txt
+보호 파일 수정 제안:
+- 수정 파일:
+- 수정 이유:
+- 대안:
+- 영향받는 기능:
+```
+
+DB 변경이 필요하면 먼저 제안한다.
+
+```txt
+DB 변경 제안:
+- 변경 테이블:
+- 변경 컬럼:
+- 변경 이유:
+- 영향받는 기능:
+```
+
+## 4. 핵심 구현 규칙
+
+- TypeScript를 사용한다.
+- `any`로 타입 오류를 덮지 않는다.
+- 컴포넌트 이름은 PascalCase를 사용한다.
+- 함수와 변수 이름은 camelCase를 사용한다.
+- 상수 이름은 UPPER_SNAKE_CASE를 사용한다.
+- UI 문구는 한국어로 작성한다.
+- 기존 코드 스타일을 우선 따른다.
+- 패키지가 필요하면 설치하지 말고 먼저 제안한다.
+- Kakao Local REST API와 Naver API는 서버에서만 호출한다.
+- 프론트엔드는 `/api/places/search`를 호출한다.
+- 장소 검색과 지도 표시의 기준 데이터는 Kakao를 우선 사용하고, Naver는 이미지 또는 보조 정보 확인 용도로만 사용한다.
+- 장소 데이터는 외부 API 결과를 전부 저장하지 않는다. 리뷰 작성, 북마크 추가, 동선 저장 시에만 필요한 장소 정보를 Supabase에 저장한다.
+- 로그인과 회원가입은 Supabase Auth 이메일 / 비밀번호만 사용한다.
+- 사용자별 데이터는 로그인한 사용자의 `user_id`를 기준으로 저장한다.
+- 동선 MVP는 장소 좌표를 순서대로 연결하는 Polyline 방식으로 구현한다.
+- 실제 길찾기 API 기반 도보 경로는 MVP 필수 기능이 아니다.
+
+## 5. 절대 금지
+
+- 요청받지 않은 기능 추가
+- 전체 구조 리팩토링
+- 폴더 구조 변경
+- 파일명 임의 변경
+- 기존 함수명 임의 변경
+- DB 컬럼 임의 변경
+- 환경변수 이름 변경
+- 패키지 임의 설치
+- 인증 방식 임의 변경
+- UI 라이브러리 교체
+- `.env` 생성 / 수정
+- API 키, 토큰, 비밀번호 하드코딩
+- 관련 없는 파일 수정
+- 관련 없는 코드 포맷팅
+- `main` 또는 `dev` 직접 push
+- PR 없이 merge
+- 실패한 작업을 성공했다고 말하기
+- Google Maps 사용
+- Naver를 Kakao 대체 지도/검색 기준 데이터로 사용하는 것
+- Redux, Zustand, React Query, Prisma, Express, NestJS, MongoDB, UI 컴포넌트 라이브러리 추가
+- 학교 메일 인증, 이메일 OTP 인증, 소셜 로그인 구현
+
+## 6. Git 규칙
+
+작업 시작 전에 사용자가 최신 `dev`를 반영했는지 확인한다.
+
+- 확인할 명령어: `git pull origin dev`
+- 사용자가 아직 실행하지 않았다면 먼저 실행하도록 안내한다.
+- 에이전트가 직접 실행해야 하면 사용자에게 확인을 받고 실행한다.
+- `git pull origin dev` 중 merge conflict가 발생하면 바로 수정하지 않는다.
+- 충돌 파일, 충돌한 기능, 현재 작업과의 관련성, 가능한 해결 방법을 먼저 정리해 사용자에게 보고한다.
+- 기술 리드 또는 해당 파일 담당자 확인 없이 conflict를 임의로 해결하지 않는다.
+
+커밋 메시지는 한국어로 짧고 명확하게 작성한다.
+
+```txt
+타입(대상): 작업 내용
+```
+
+타입: feat, fix, style, refactor, docs, chore, remove
+
+타입 의미:
+
+- `feat`: 기능 추가
+- `fix`: 버그 수정
+- `style`: UI / 스타일 수정
+- `refactor`: 기능 변화 없는 코드 구조 정리
+- `docs`: 문서 수정
+- `chore`: 테스트 파일 삭제, 설정 정리 등 기능과 직접 관련 없는 작업
+- `remove`: 파일 또는 코드 삭제
+
+좋은 예시:
+
+```txt
+fix(수정할 파일명): 수정 내용
+feat(추가할 파일명): 추가 내용
+remove(삭제할 파일명): 삭제 내용
+```
+
+나쁜 예시:
+
+```txt
+수정
+완성
+test
+```
+
+파일명이나 상세 대상이 중요하면 `타입(대상): 작업 내용` 형식으로 적는다.
+
+커밋은 파일 단위로 나눈다. (한 커밋 = 한 파일)
+
+- 여러 파일을 한 커밋에 묶지 않는다. 변경한 파일마다 따로 커밋한다.
+- 대상에는 변경한 파일명을 확장자까지 적는다. (예: PlaceCard.tsx)
+- 한 작업이 여러 파일에 걸쳐도, 파일별로 나눠 커밋한다.
+
+커밋 메시지에 `Co-Authored-By` 같은 공동 작성자 트레일러를 넣지 않는다.
+
+PR base는 항상 `dev`로 한다. merge는 기술 리드만 한다. conflict가 나면 바로 수정하지 말고 상황을 정리한다.
+
+## 7. 작업 후 보고
+
+작업 후 아래 내용을 정리한다.
+
+1. 변경한 파일
+2. 구현한 내용
+3. 실행 명령어
+4. 테스트 방법
+5. 주의할 점
+6. 테스트하지 못한 부분
+
+설명은 비전공자도 이해할 수 있게 쓴다.
+
+## 8. 페이지 UI 공통 규칙
+
+새 페이지나 화면 UI를 만들 때는 누가 작업하든 아래를 지킨다. 기준 파일은 `src/app/page.tsx`다.
+
+- 페이지 최상위는 `src/app/page.tsx`처럼 `<div className="min-h-screen bg-slate-50">`로 감싸고, 그 안 최상단에 `@/components/layout/Header`를 넣는다.
+- 본문은 `<main className="mx-auto max-w-7xl px-6 py-6">`처럼 가운데 정렬 + 최대 너비 컨테이너를 쓴다. (`max-w-*` 값은 페이지 성격에 맞게 조정 가능)
+- 카드 / 박스는 `rounded-2xl border border-gray-200 bg-white p-5` 스타일을 따른다.
+- 색은 배경 `slate-50`, 카드 `white`, 글자 `slate-900` / `slate-500`, 강조(버튼 · 링크) `blue-500` / `blue-600`을 기본으로 한다.
+- 제목 · 라벨은 `text-sm font-semibold text-slate-900` 같은 기존 page.tsx 패턴을 우선 따른다.
+- 새 색 / 스타일을 임의로 도입하지 말고 page.tsx와 기존 컴포넌트의 Tailwind 클래스를 재사용한다.
+- **Header(`src/components/layout/Header.tsx`)는 모든 페이지에 반드시 포함한다.**
+  - 예외: 로그인 / 회원가입 같은 전체화면 인증 페이지는 Header 없이 가운데 정렬 카드 레이아웃을 쓴다. 이때도 배경 / 카드 / 색 규칙은 동일하게 따른다.
+
+## 9. 상세 문서
+
+필요한 경우 아래 문서를 함께 확인한다.
+
+- `docs/PROJECT_SPEC.md`: 서비스 설명과 전체 구조
+- `docs/MVP_SCOPE.md`: MVP 구현 범위와 제외 범위
+- `docs/TECH_STACK.md`: 사용 기술과 사용하지 않는 기술
+- `docs/API_AUTH_RULES.md`: Kakao API, Naver API, Supabase Auth, Route 규칙
+- `docs/DB_RULES.md`: Supabase DB 저장 규칙과 변경 제안 형식
+- `docs/GITHUB_GUIDE.md`: GitHub 사용 가이드
+- `docs/BRANCH_CONFLICT_GUIDE.md`: 브랜치 충돌 대응 가이드
+- `docs/PROMPT_GUIDE.md`: AI 작업 요청 예시
