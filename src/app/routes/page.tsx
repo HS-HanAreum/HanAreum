@@ -3,25 +3,19 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Header from '@/components/layout/Header';
+import RouteMap from '@/components/routes/RouteMap';
+import type { Place, PlaceSearchResult } from '@/types/place';
+import type { RoutePlace, SavedRoute } from '@/types/route';
 
 // 나만의 동선 만들기 페이지.
-// 아직 Kakao 지도/검색, Supabase, 로그인 연결 전이라 임시 데이터 + localStorage 로만 동작한다.
-// 지도와 연결선은 실제 길찾기 경로가 아니라 좌표를 순서대로 잇는 MVP 표시용이다.
+// 장소 검색은 프론트 → /api/places/search → Kakao Local API 흐름만 사용한다(키는 서버에만 둔다).
+// 지도는 실제 Kakao 지도이며, 연결선(Polyline)은 길찾기 경로가 아니라 좌표를 순서대로 잇는 MVP 표시용이다.
+// 저장은 아직 localStorage 만 사용한다(Supabase 저장은 이번 작업 범위 아님).
 
-interface TempPlace {
-  id: string;
-  name: string;
-  category: string; // 학교 / 카페 / 맛집 / 서점 / 스터디 / 역
-  address: string;
-  x: number; // 임시 지도 박스 안 위치 (0~100 %)
-  y: number;
-}
-
-interface SavedRoute {
-  id: string;
-  name: string;
-  places: TempPlace[]; // 순서대로 들르는 장소
-}
+// 한성대학교 중심 좌표 (검색 기준점이자 지도 기본 중심)
+const HANSUNG_UNIV = { lat: 37.5826, lng: 127.0103 };
+const SEARCH_RADIUS = 2000; // 검색 반경(m)
+const SEARCH_SIZE = 15; // 검색 결과 개수(가까운 순)
 
 // localStorage 저장 키. 다른 기능과 겹치지 않도록 접두어를 붙인다.
 const STORAGE_KEY = 'hanareum.routes';
@@ -29,23 +23,67 @@ const STORAGE_KEY = 'hanareum.routes';
 // 동선 이름 기본값
 const DEFAULT_ROUTE_NAME = '공강 시간 카페 코스';
 
-// 카테고리 필터 버튼
+// 카테고리 필터 버튼. '전체'는 검색창 키워드를 그대로 쓰고, 나머지는 고정 키워드로 검색한다.
 const CATEGORIES = ['전체', '맛집', '카페', '서점', '스터디'] as const;
+type CategoryLabel = (typeof CATEGORIES)[number];
+const CATEGORY_KEYWORDS: Record<CategoryLabel, string> = {
+  전체: '',
+  맛집: '맛집',
+  카페: '카페',
+  서점: '서점',
+  스터디: '스터디카페',
+};
 
-// 임시 장소 데이터. x/y 는 임시 지도 박스 안에서의 대략 위치(실제 좌표 아님).
-const TEMP_PLACES: TempPlace[] = [
-  { id: 'hansung', name: '한성대학교', category: '학교', address: '서울 성북구 삼선교로16길 116', x: 46, y: 58 },
-  { id: 'cafe', name: '한아름 카페', category: '카페', address: '서울 성북구 삼선교로 16길', x: 62, y: 40 },
-  { id: 'matjip', name: '삼선동 맛집', category: '맛집', address: '서울 성북구 동소문로 근처', x: 30, y: 36 },
-  { id: 'bookstore', name: '조용한 서점', category: '서점', address: '한성대입구역 5번 출구 근처', x: 72, y: 62 },
-  { id: 'study', name: '스터디 라운지', category: '스터디', address: '서울 성북구 삼선동 근처', x: 52, y: 24 },
-  { id: 'station', name: '한성대입구역', category: '역', address: '서울 성북구 동소문동', x: 24, y: 72 },
-];
+// Kakao 검색 결과(Place)에서 동선 저장에 필요한 필드만 추린다.
+function toRoutePlace(place: Place): RoutePlace {
+  return {
+    provider: 'kakao',
+    providerPlaceId: place.providerPlaceId,
+    name: place.name,
+    address: place.address,
+    category: place.category,
+    lat: place.lat,
+    lng: place.lng,
+    placeUrl: place.placeUrl,
+  };
+}
+
+// 공유 링크/localStorage 로 들어온 장소가 동선 장소 형태인지 검증한다(좌표는 실제 숫자여야 함).
+function isValidRoutePlace(value: unknown): value is RoutePlace {
+  if (typeof value !== 'object' || value === null) return false;
+  const place = value as Record<string, unknown>;
+  return (
+    typeof place.providerPlaceId === 'string' &&
+    typeof place.name === 'string' &&
+    typeof place.lat === 'number' &&
+    typeof place.lng === 'number' &&
+    Number.isFinite(place.lat) &&
+    Number.isFinite(place.lng)
+  );
+}
+
+// 검증을 통과한 장소를 RoutePlace 로 정규화한다(누락 필드는 기본값으로 채운다).
+function normalizeRoutePlace(place: RoutePlace): RoutePlace {
+  return {
+    provider: 'kakao',
+    providerPlaceId: place.providerPlaceId,
+    name: place.name,
+    address: place.address ?? '',
+    category: place.category ?? '',
+    lat: place.lat,
+    lng: place.lng,
+    placeUrl: place.placeUrl ?? '',
+  };
+}
 
 export default function RoutesPage() {
   const [query, setQuery] = useState('');
-  const [category, setCategory] = useState<(typeof CATEGORIES)[number]>('전체');
-  const [selectedPlaces, setSelectedPlaces] = useState<TempPlace[]>([]);
+  const [category, setCategory] = useState<CategoryLabel>('전체');
+  const [searchResults, setSearchResults] = useState<Place[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null); // 빈 검색어 안내 / 검색 실패 안내
+  const [searched, setSearched] = useState(false); // 한 번이라도 검색을 실행했는지
+  const [selectedPlaces, setSelectedPlaces] = useState<RoutePlace[]>([]);
   const [routeName, setRouteName] = useState(DEFAULT_ROUTE_NAME);
   const [savedRoutes, setSavedRoutes] = useState<SavedRoute[]>([]);
   const [shareUrl, setShareUrl] = useState('');
@@ -67,27 +105,34 @@ export default function RoutesPage() {
       initialSaved = [];
     }
 
-    // 공유 링크 query string 읽기 (?name=...&places=id1,id2,...)
+    // 공유 링크 query string 읽기 (?route=<URL 인코딩된 JSON>)
+    // 실제 Kakao 장소는 id 만으로 복원할 수 없어 장소 정보를 통째로 직렬화해 담는다.
     const params = new URLSearchParams(window.location.search);
-    const placesParam = params.get('places');
-    const nameParam = params.get('name');
-    if (placesParam) {
-      const ids = placesParam.split(',').filter(Boolean);
-      const places = ids
-        .map((id) => TEMP_PLACES.find((place) => place.id === id))
-        .filter((place): place is TempPlace => place !== undefined);
+    const routeParam = params.get('route');
+    if (routeParam) {
+      try {
+        const decoded = JSON.parse(decodeURIComponent(routeParam)) as {
+          name?: string;
+          places?: unknown[];
+        };
+        const places = (decoded.places ?? [])
+          .filter(isValidRoutePlace)
+          .map(normalizeRoutePlace);
 
-      if (places.length > 0) {
-        const sharedName = nameParam?.trim() || '공유받은 동선';
-        setSelectedPlaces(places);
-        setRouteName(sharedName);
-        setSharedNotice(true);
+        if (places.length > 0) {
+          const sharedName = decoded.name?.trim() || '공유받은 동선';
+          setSelectedPlaces(places);
+          setRouteName(sharedName);
+          setSharedNotice(true);
 
-        // 같은 공유 동선이 아직 없으면 저장된 동선에 자동 추가 (중복 추가 방지)
-        const sharedId = `shared-${ids.join('-')}`;
-        if (!initialSaved.some((route) => route.id === sharedId)) {
-          initialSaved = [{ id: sharedId, name: sharedName, places }, ...initialSaved];
+          // 같은 공유 동선이 아직 없으면 저장된 동선에 자동 추가 (중복 추가 방지)
+          const sharedId = `shared-${places.map((place) => place.providerPlaceId).join('-')}`;
+          if (!initialSaved.some((route) => route.id === sharedId)) {
+            initialSaved = [{ id: sharedId, name: sharedName, places }, ...initialSaved];
+          }
         }
+      } catch {
+        // 잘못된 공유 링크는 무시한다
       }
     }
 
@@ -102,21 +147,75 @@ export default function RoutesPage() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(savedRoutes));
   }, [savedRoutes, loaded]);
 
-  // 검색어 + 카테고리로 임시 장소를 거른다.
-  const filteredPlaces = TEMP_PLACES.filter((place) => {
-    const matchCategory = category === '전체' || place.category === category;
-    const matchQuery = place.name.includes(query.trim());
-    return matchCategory && matchQuery;
-  });
+  // 키워드로 한성대 주변 장소를 검색한다 (프론트 → /api/places/search → Kakao Local API).
+  async function runSearch(keyword: string) {
+    if (!keyword) {
+      setSearchError('검색어를 입력해주세요.');
+      setSearchResults([]);
+      setSearched(false);
+      return;
+    }
+    setSearchLoading(true);
+    setSearchError(null);
+    try {
+      const params = new URLSearchParams({
+        query: keyword,
+        x: String(HANSUNG_UNIV.lng),
+        y: String(HANSUNG_UNIV.lat),
+        radius: String(SEARCH_RADIUS),
+        size: String(SEARCH_SIZE),
+        sort: 'distance',
+      });
+      const res = await fetch(`/api/places/search?${params.toString()}`);
+      if (!res.ok) throw new Error('검색 실패');
+      const data: PlaceSearchResult = await res.json();
+      setSearchResults(data.places);
+      setSearched(true);
+    } catch {
+      setSearchError('장소 검색에 실패했습니다.');
+      setSearchResults([]);
+      setSearched(false);
+    } finally {
+      setSearchLoading(false);
+    }
+  }
+
+  // 검색창에서 검색(엔터/버튼): 카테고리를 '전체'로 되돌리고 입력한 키워드로 검색한다.
+  function handleSearchSubmit() {
+    setCategory('전체');
+    runSearch(query.trim());
+  }
+
+  // 카테고리 클릭: '전체'면 검색창 키워드로, 나머지는 고정 키워드로 검색한다.
+  function handleCategorySelect(label: CategoryLabel) {
+    setCategory(label);
+    if (label === '전체') {
+      const keyword = query.trim();
+      if (keyword) {
+        runSearch(keyword);
+      } else {
+        setSearchResults([]);
+        setSearched(false);
+        setSearchError(null);
+      }
+      return;
+    }
+    setQuery('');
+    runSearch(CATEGORY_KEYWORDS[label]);
+  }
 
   // 장소를 동선에 추가한다 (이미 담긴 장소는 중복 추가하지 않는다).
-  function handleAddPlace(place: TempPlace) {
-    setSelectedPlaces((prev) => (prev.some((item) => item.id === place.id) ? prev : [...prev, place]));
+  function handleAddPlace(place: Place) {
+    setSelectedPlaces((prev) =>
+      prev.some((item) => item.providerPlaceId === place.providerPlaceId)
+        ? prev
+        : [...prev, toRoutePlace(place)],
+    );
     setShareUrl(''); // 동선이 바뀌면 이전 공유 링크는 무효화
   }
 
-  function handleRemovePlace(id: string) {
-    setSelectedPlaces((prev) => prev.filter((place) => place.id !== id));
+  function handleRemovePlace(providerPlaceId: string) {
+    setSelectedPlaces((prev) => prev.filter((place) => place.providerPlaceId !== providerPlaceId));
     setShareUrl('');
   }
 
@@ -179,15 +278,18 @@ export default function RoutesPage() {
   }
 
   // 공유 링크(query string)를 만든다. 장소 2개 미만이면 안내 후 중단.
+  // 실제 Kakao 장소는 id 만으로 복원할 수 없어 장소 정보를 통째로 직렬화해 담는다.
   function handleShare() {
     if (selectedPlaces.length < 2) {
       alert('동선을 공유하려면 장소를 2개 이상 선택해야 합니다.');
       return;
     }
-    const params = new URLSearchParams();
-    params.set('name', routeName.trim() || '이름 없는 동선');
-    params.set('places', selectedPlaces.map((place) => place.id).join(','));
-    setShareUrl(`${window.location.origin}/routes?${params.toString()}`);
+    const payload = {
+      name: routeName.trim() || '이름 없는 동선',
+      places: selectedPlaces,
+    };
+    const encoded = encodeURIComponent(JSON.stringify(payload));
+    setShareUrl(`${window.location.origin}/routes?route=${encoded}`);
     setCopied(false);
   }
 
@@ -196,6 +298,15 @@ export default function RoutesPage() {
     navigator.clipboard?.writeText(shareUrl);
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1500);
+  }
+
+  // "음식점 > 카페 > 디저트카페" 처럼 긴 분류에서 마지막 항목만 짧게 보여준다
+  function shortCategory(value: string): string {
+    const parts = value
+      .split('>')
+      .map((part) => part.trim())
+      .filter(Boolean);
+    return parts[parts.length - 1] ?? value;
   }
 
   const summary = selectedPlaces.map((place) => place.name).join(' → ');
@@ -214,8 +325,7 @@ export default function RoutesPage() {
           HanAreum <span className="text-[#94A3B8]">/</span> 나만의 동선
         </h1>
         <p className="mt-1 text-sm text-[#64748B]">
-          장소를 검색해 순서대로 담고, 나만의 동선을 저장하거나 공유 링크를 만들어보세요. (임시 데이터로
-          동작합니다)
+          한성대 주변 장소를 검색해 순서대로 담고, 나만의 동선을 저장하거나 공유 링크를 만들어보세요.
         </p>
 
         {/* 공유 링크로 접속했을 때 안내 */}
@@ -238,20 +348,34 @@ export default function RoutesPage() {
           <section className="rounded-2xl border border-[#E2E8F0] bg-white p-5">
             <h2 className="text-base font-bold text-[#0F172A]">장소 검색</h2>
 
-            <input
-              type="text"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="장소 이름으로 검색"
-              className="mt-3 w-full rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm text-[#0F172A] placeholder:text-[#94A3B8] focus:border-[#3B82F6] focus:outline-none"
-            />
+            <form
+              onSubmit={(event) => {
+                event.preventDefault();
+                handleSearchSubmit();
+              }}
+              className="mt-3 flex gap-2"
+            >
+              <input
+                type="text"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="장소 · 카테고리 검색 (예: 카페, 맛집, 한성대)"
+                className="min-w-0 flex-1 rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm text-[#0F172A] placeholder:text-[#94A3B8] focus:border-[#3B82F6] focus:outline-none"
+              />
+              <button
+                type="submit"
+                className="shrink-0 rounded-lg bg-[#3B82F6] px-4 py-2 text-sm font-medium text-white hover:bg-[#2f6fd6]"
+              >
+                검색
+              </button>
+            </form>
 
             <div className="mt-3 flex flex-wrap gap-2">
               {CATEGORIES.map((item) => (
                 <button
                   key={item}
                   type="button"
-                  onClick={() => setCategory(item)}
+                  onClick={() => handleCategorySelect(item)}
                   className={`rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
                     category === item
                       ? 'bg-[#3B82F6] text-white'
@@ -264,16 +388,30 @@ export default function RoutesPage() {
             </div>
 
             <div className="mt-4 flex flex-col gap-2">
-              {filteredPlaces.length === 0 ? (
+              {searchLoading ? (
+                <p className="rounded-xl border border-dashed border-[#E2E8F0] bg-white p-6 text-center text-sm text-[#94A3B8]">
+                  검색 중...
+                </p>
+              ) : searchError ? (
+                <p className="rounded-xl border border-dashed border-[#E2E8F0] bg-white p-6 text-center text-sm text-[#94A3B8]">
+                  {searchError}
+                </p>
+              ) : searched && searchResults.length === 0 ? (
                 <p className="rounded-xl border border-dashed border-[#E2E8F0] bg-white p-6 text-center text-sm text-[#94A3B8]">
                   검색 결과가 없습니다.
                 </p>
+              ) : !searched ? (
+                <p className="rounded-xl border border-dashed border-[#E2E8F0] bg-white p-6 text-center text-sm text-[#94A3B8]">
+                  장소를 검색해 동선에 담아보세요.
+                </p>
               ) : (
-                filteredPlaces.map((place) => {
-                  const isSelected = selectedPlaces.some((item) => item.id === place.id);
+                searchResults.map((place) => {
+                  const isSelected = selectedPlaces.some(
+                    (item) => item.providerPlaceId === place.providerPlaceId,
+                  );
                   return (
                     <button
-                      key={place.id}
+                      key={place.providerPlaceId}
                       type="button"
                       onClick={() => handleAddPlace(place)}
                       disabled={isSelected}
@@ -303,64 +441,15 @@ export default function RoutesPage() {
 
           {/* 오른쪽: 지도 + (선택한 동선 / 저장된 동선) */}
           <div className="flex flex-col gap-6">
-            {/* 2. 오른쪽 위: 임시 지도 */}
+            {/* 2. 오른쪽 위: 실제 Kakao 지도 */}
             <section className="rounded-2xl border border-[#E2E8F0] bg-white p-5">
               <div className="flex items-center justify-between">
-                <h2 className="text-base font-bold text-[#0F172A]">지도 미리보기</h2>
-                <span className="text-xs text-[#94A3B8]">임시 지도 · 실제 경로 아님</span>
+                <h2 className="text-base font-bold text-[#0F172A]">지도</h2>
+                <span className="text-xs text-[#94A3B8]">직선 연결 · 실제 경로 아님</span>
               </div>
 
-              <div className="relative mt-3 h-72 w-full overflow-hidden rounded-xl border border-[#E2E8F0] bg-[#B6EEFF]/40">
-                {/* 지도처럼 보이게 하는 격자 배경 */}
-                <div
-                  className="absolute inset-0 opacity-60"
-                  style={{
-                    backgroundImage:
-                      'linear-gradient(#E2E8F0 1px, transparent 1px), linear-gradient(90deg, #E2E8F0 1px, transparent 1px)',
-                    backgroundSize: '28px 28px',
-                  }}
-                />
-
-                {/* 선택한 장소를 순서대로 잇는 연결선 (2개 이상일 때) */}
-                {selectedPlaces.length >= 2 && (
-                  <svg
-                    className="absolute inset-0 h-full w-full"
-                    viewBox="0 0 100 100"
-                    preserveAspectRatio="none"
-                  >
-                    <polyline
-                      points={selectedPlaces.map((place) => `${place.x},${place.y}`).join(' ')}
-                      fill="none"
-                      stroke="#3B82F6"
-                      strokeWidth={2}
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      vectorEffect="non-scaling-stroke"
-                    />
-                  </svg>
-                )}
-
-                {/* 모든 임시 장소 마커 (선택된 장소는 순서 번호 표시) */}
-                {TEMP_PLACES.map((place) => {
-                  const order = selectedPlaces.findIndex((item) => item.id === place.id);
-                  const isSelected = order !== -1;
-                  return (
-                    <div
-                      key={place.id}
-                      className="absolute -translate-x-1/2 -translate-y-1/2"
-                      style={{ left: `${place.x}%`, top: `${place.y}%` }}
-                      title={place.name}
-                    >
-                      {isSelected ? (
-                        <span className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-white bg-[#3B82F6] text-xs font-bold text-white shadow">
-                          {order + 1}
-                        </span>
-                      ) : (
-                        <span className="block h-3.5 w-3.5 rounded-full border-2 border-white bg-[#64748B] shadow" />
-                      )}
-                    </div>
-                  );
-                })}
+              <div className="relative mt-3 h-72 w-full overflow-hidden rounded-xl border border-[#E2E8F0]">
+                <RouteMap center={HANSUNG_UNIV} places={selectedPlaces} />
               </div>
             </section>
 
@@ -393,7 +482,7 @@ export default function RoutesPage() {
                   <ol className="mt-4 flex flex-col gap-2">
                     {selectedPlaces.map((place, index) => (
                       <li
-                        key={place.id}
+                        key={place.providerPlaceId}
                         className="flex items-center gap-3 rounded-xl border border-[#E2E8F0] bg-white p-2.5"
                       >
                         <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#3B82F6] text-xs font-bold text-white">
@@ -401,11 +490,13 @@ export default function RoutesPage() {
                         </span>
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm font-medium text-[#0F172A]">{place.name}</p>
-                          <p className="truncate text-xs text-[#64748B]">{place.address}</p>
+                          <p className="truncate text-xs text-[#64748B]">
+                            {shortCategory(place.category)} · {place.address}
+                          </p>
                         </div>
                         <button
                           type="button"
-                          onClick={() => handleRemovePlace(place.id)}
+                          onClick={() => handleRemovePlace(place.providerPlaceId)}
                           className="shrink-0 rounded px-2 py-1 text-xs text-[#64748B] hover:text-red-500"
                         >
                           삭제
@@ -478,7 +569,7 @@ export default function RoutesPage() {
                         type="text"
                         value={shareUrl}
                         readOnly
-                        className="flex-1 rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] px-3 py-2 text-xs text-[#0F172A] focus:outline-none"
+                        className="min-w-0 flex-1 rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] px-3 py-2 text-xs text-[#0F172A] focus:outline-none"
                       />
                       <button
                         type="button"
