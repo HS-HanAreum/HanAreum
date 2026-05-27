@@ -142,7 +142,7 @@ export default function Home() {
         </section>
 
         {/* 우: 안내 카드 */}
-        <aside>
+        <aside className="bg-white p-4">
           <PromoCards />
         </aside>
       </main>
