@@ -97,13 +97,13 @@ export default function FolderDetailPage(): React.ReactElement {
                 className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"
               >
                 <h3 className="mb-3 text-lg font-bold text-slate-900">
-                  {bookmark.place_name}
+                  {bookmark.placeName}
                 </h3>
                 <p className="mb-2 text-sm text-slate-500">
-                  {bookmark.place_category}
+                  {bookmark.placeCategory}
                 </p>
                 <p className="text-sm text-slate-500">
-                  {bookmark.place_address}
+                  {bookmark.placeAddress}
                 </p>
               </div>
             ))}

@@ -9,9 +9,11 @@ const supabase = createClient(
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { folderId: string } }
+  { params }: { params: Promise<{ folderId: string }> }
 ) {
   try {
+    const { folderId } = await params;
+
     const authHeader = request.headers.get('authorization');
     if (!authHeader) {
       return NextResponse.json(
@@ -34,7 +36,7 @@ export async function GET(
     const { data, error } = await supabase
       .from('bookmarks')
       .select('*')
-      .eq('folder_id', params.folderId)
+      .eq('folder_id', folderId)
       .eq('user_id', user.id);
 
     if (error) {
@@ -56,9 +58,11 @@ export async function GET(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { folderId: string } }
+  { params }: { params: Promise<{ folderId: string }> }
 ) {
   try {
+    const { folderId } = await params;
+
     const authHeader = request.headers.get('authorization');
     if (!authHeader) {
       return NextResponse.json(
@@ -92,7 +96,7 @@ export async function DELETE(
     const { error } = await supabase
       .from('bookmarks')
       .delete()
-      .eq('folder_id', params.folderId)
+      .eq('folder_id', folderId)
       .eq('place_id', placeId)
       .eq('user_id', user.id);
 
