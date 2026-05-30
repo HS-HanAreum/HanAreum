@@ -6,7 +6,7 @@ import Header from "@/components/layout/Header";
 import FolderDetailHeader from "@/components/bookmarks/FolderDetailHeader";
 import FolderPlacesEmptyState from "@/components/bookmarks/FolderPlacesEmptyState";
 import { CustomFolder, Bookmark } from "@/types/bookmark";
-import { getBookmarksByFolderId } from "@/lib/bookmarkApi";
+import { getBookmarksByFolderId, getFolderById } from "@/lib/bookmarkApi";
 
 export default function FolderDetailPage(): React.ReactElement {
   const params = useParams();
@@ -22,18 +22,23 @@ export default function FolderDetailPage(): React.ReactElement {
       try {
         setLoading(true);
 
-        // 폴더 정보 로컬스토리지에서 로드
-        const storedFolders = localStorage.getItem("customFolders");
-        if (storedFolders) {
-          const folders = JSON.parse(storedFolders) as CustomFolder[];
-          const found = folders.find((f) => f.id === folderId);
-          if (found) {
-            setFolder(found);
-          }
-        }
+        // 폴더 정보 API에서 로드
+        const folderData = await getFolderById(folderId);
 
         // 북마크 목록 API에서 로드
         const bookmarksData = await getBookmarksByFolderId(folderId);
+
+        // BookmarkFolder를 CustomFolder로 변환
+        const customFolder: CustomFolder = {
+          id: folderData.id,
+          title: folderData.name,
+          count: bookmarksData.length,
+          recent: bookmarksData.length > 0 ? bookmarksData[bookmarksData.length - 1].placeName : "",
+          colorIndex: 0,
+          icon: (folderData.icon as any) || "folder",
+        };
+
+        setFolder(customFolder);
         setBookmarks(bookmarksData);
       } catch (err) {
         setError(err instanceof Error ? err.message : "오류가 발생했습니다");
