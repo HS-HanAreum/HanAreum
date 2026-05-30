@@ -1,17 +1,23 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  { auth: { persistSession: false } }
-);
+// createClient를 함수 안에서 호출(lazy init)한다.
+// 모듈 최상단에서 실행하면 빌드 시점에 환경변수가 없을 때
+// 'supabaseKey is required'로 빌드가 실패하므로, 요청 처리 시에만 생성한다.
+function getServiceClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { persistSession: false } }
+  );
+}
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ folderId: string }> }
 ) {
   try {
+    const supabase = getServiceClient();
     const { folderId } = await params;
 
     const authHeader = request.headers.get('authorization');
@@ -61,6 +67,7 @@ export async function DELETE(
   { params }: { params: Promise<{ folderId: string }> }
 ) {
   try {
+    const supabase = getServiceClient();
     const { folderId } = await params;
 
     const authHeader = request.headers.get('authorization');
