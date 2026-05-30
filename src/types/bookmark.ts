@@ -41,7 +41,8 @@ export interface Bookmark {
 
 export interface BookmarkFolder {
   id: string;
-  userId: string;
+  user_id: string;
   name: string;
-  createdAt: string;
+  icon: string;
+  created_at: string;
 }
