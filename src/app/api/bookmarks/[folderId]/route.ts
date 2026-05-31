@@ -38,10 +38,17 @@ export async function GET(
       );
     }
 
-    // 폴더의 북마크 조회 (사용자 확인)
+    // 폴더의 북마크 조회 (places와 JOIN)
     const { data, error } = await supabase
       .from('bookmarks')
-      .select('*')
+      .select(`
+        id,
+        user_id,
+        place_id,
+        folder_id,
+        created_at,
+        places(name, category, address)
+      `)
       .eq('folder_id', folderId)
       .eq('user_id', user.id);
 
@@ -52,7 +59,19 @@ export async function GET(
       );
     }
 
-    return NextResponse.json(data || []);
+    // places 정보를 최상위 레벨로 평탄화
+    const bookmarksWithPlaces = (data || []).map((bookmark: any) => ({
+      id: bookmark.id,
+      user_id: bookmark.user_id,
+      place_id: bookmark.place_id,
+      folder_id: bookmark.folder_id,
+      created_at: bookmark.created_at,
+      place_name: bookmark.places?.name,
+      place_category: bookmark.places?.category,
+      place_address: bookmark.places?.address,
+    }));
+
+    return NextResponse.json(bookmarksWithPlaces);
   } catch (error) {
     console.error('GET /api/bookmarks/[folderId] error:', error);
     return NextResponse.json(
