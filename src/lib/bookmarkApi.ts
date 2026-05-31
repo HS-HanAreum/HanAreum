@@ -41,7 +41,13 @@ export async function addBookmark(folderId: string, place: {
       'Content-Type': 'application/json',
       ...(token && { 'Authorization': `Bearer ${token}` }),
     },
-    body: JSON.stringify({ folderId, ...place }),
+    body: JSON.stringify({
+      folderId,
+      placeId: place.placeId,
+      placeName: place.placeName,
+      placeAddress: place.placeAddress,
+      placeCategory: place.placeCategory,
+    }),
   });
 
   if (!response.ok) {
