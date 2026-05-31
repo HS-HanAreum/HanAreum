@@ -1,6 +1,6 @@
 // 상세페이지 리뷰 섹션에서 화면 표시에 쓰는 타입과 선택지 상수.
-// 주의: DB(supabase/schema.sql의 reviews 테이블)는 변경하지 않는다.
-//       요일/시간대/혼잡도는 현재 프론트엔드 상태로만 다루는 표시용 값이다.
+// 요일/시간대/혼잡도는 reviews 테이블의 visit_day/visit_time_slot/congestion 에 한국어 라벨 그대로 저장한다.
+// (미선택이면 null 로 저장하고 화면에서는 해당 태그를 숨긴다)
 
 // 방문 요일 (알약 버튼 / 카드 태그)
 export const REVIEW_DAYS = ['월', '화', '수', '목', '금', '토', '일'] as const;
@@ -31,13 +31,13 @@ export interface Review {
   id: string;
   author: string; // 작성자 닉네임
   rating: number; // 1~5
-  day: ReviewDay;
-  timeSlot: ReviewTimeSlot;
-  congestion: ReviewCongestion;
+  day: ReviewDay | null; // 미선택이면 null (태그 숨김)
+  timeSlot: ReviewTimeSlot | null;
+  congestion: ReviewCongestion | null;
   content: string;
   time: string; // 작성 시간 표시 (예: "12:44")
   likeCount: number;
-  liked: boolean; // 현재 사용자가 좋아요를 눌렀는지 (프론트 상태)
+  liked: boolean; // 현재 사용자가 좋아요를 눌렀는지
 }
 
 // 작성 모달에서 목록으로 넘기는 입력값.
