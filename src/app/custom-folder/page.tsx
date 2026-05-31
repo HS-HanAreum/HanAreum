@@ -64,15 +64,26 @@ export default function CustomFolderPage(): React.ReactElement {
           .select("id, name, icon, created_at")
           .eq("user_id", uid)
           .order("created_at", { ascending: false }),
-        supabase.from("bookmarks").select("folder_id").eq("user_id", uid),
+        supabase
+          .from("bookmarks")
+          .select("folder_id, created_at, places(name)")
+          .eq("user_id", uid)
+          .order("created_at", { ascending: false }),
       ]);
       if (!active) return;
 
       const countByFolder = new Map<string, number>();
-      const bookmarkRows = (bookmarkResult.data ?? []) as { folder_id: string | null }[];
+      const recentByFolder = new Map<string, string>();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const bookmarkRows = (bookmarkResult.data ?? []) as any[];
       for (const row of bookmarkRows) {
         if (row.folder_id) {
+          // count 계산
           countByFolder.set(row.folder_id, (countByFolder.get(row.folder_id) ?? 0) + 1);
+          // 각 폴더의 최신 장소 저장 (한 번만)
+          if (!recentByFolder.has(row.folder_id)) {
+            recentByFolder.set(row.folder_id, row.places?.name ?? "");
+          }
         }
       }
 
@@ -85,7 +96,7 @@ export default function CustomFolderPage(): React.ReactElement {
             icon: (row.icon as FolderIconType) ?? "folder",
             colorIndex: 0,
             count: countByFolder.get(row.id) ?? 0,
-            recent: "아직 없음",
+            recent: recentByFolder.get(row.id) || "아직 없음",
           }))
         )
       );

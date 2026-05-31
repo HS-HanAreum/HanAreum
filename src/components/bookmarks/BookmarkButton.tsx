@@ -31,11 +31,13 @@ export default function BookmarkButton({ place, variant = 'icon' }: BookmarkButt
       setUserId(uid);
       if (!uid) return;
       // bookmarks 와 places 를 조인해 provider_place_id 기준으로 내 북마크 존재 여부를 확인한다.
+      // folder_id 가 null 인 것만 조회 (커스텀 폴더 장소는 제외)
       const { data: rows } = await supabase
         .from('bookmarks')
         .select('id, places!inner(provider_place_id)')
         .eq('user_id', uid)
         .eq('places.provider_place_id', place.providerPlaceId)
+        .is('folder_id', null)
         .limit(1);
       if (active && rows && rows.length > 0) setBookmarked(true);
     })();
@@ -86,7 +88,8 @@ export default function BookmarkButton({ place, variant = 'icon' }: BookmarkButt
           .from('bookmarks')
           .delete()
           .eq('user_id', userId)
-          .eq('place_id', placeId);
+          .eq('place_id', placeId)
+          .is('folder_id', null);
         if (error) throw error;
         setBookmarked(false);
       } else {

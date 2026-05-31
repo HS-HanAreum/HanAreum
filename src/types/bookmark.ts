@@ -30,18 +30,21 @@ export interface IconOption {
 }
 export interface Bookmark {
   id: string;
-  userId: string;
-  placeId: string;
-  placeName: string;
-  placeCategory?: string;
-  placeAddress: string;
-  folderId: string | null;
-  createdAt: string;
+  user_id: string;
+  place_id: string;
+  folder_id: string | null;
+  created_at: string;
+  // places 테이블에서 JOIN된 정보
+  place_name?: string;
+  place_category?: string;
+  place_address?: string;
+  provider_place_id?: string;
 }
 
 export interface BookmarkFolder {
   id: string;
-  userId: string;
+  user_id: string;
   name: string;
-  createdAt: string;
+  icon: string;
+  created_at: string;
 }
