@@ -36,10 +36,10 @@ export default function FolderDetailHeader({
   return (
     <div className="mb-8">
       <Link
-        href="/"
+        href="/custom-folder"
         className="mb-4 inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 transition"
       >
-        ← 카테고리 목록으로
+        ← 커스텀폴더로 돌아가기
       </Link>
 
       <div className="flex items-start gap-6">
