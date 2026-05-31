@@ -244,7 +244,10 @@ export default function FolderDetailPage(): React.ReactElement {
       <Header />
 
       <main className="mx-auto max-w-7xl px-6 py-6">
-        <FolderDetailHeader folder={folder} />
+        <FolderDetailHeader
+          folder={folder}
+          onFolderUpdate={(updatedFolder) => setFolder(updatedFolder)}
+        />
 
         {error && (
           <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 p-4 text-red-700">
