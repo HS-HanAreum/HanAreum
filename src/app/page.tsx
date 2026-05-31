@@ -7,7 +7,6 @@ import CategoryTabs, { CATEGORIES, type CategoryId } from '@/components/places/C
 import FilterChips, { type SortId } from '@/components/places/FilterChips';
 import PlaceList from '@/components/places/PlaceList';
 import Pagination from '@/components/places/Pagination';
-import PromoCards from '@/components/home/PromoCards';
 import type { Place, PlaceSearchResult } from '@/types/place';
 
 // 한성대학교 중심 좌표 (검색 기준점이자 거리 계산 기준)
@@ -115,8 +114,8 @@ export default function Home() {
     <div className="min-h-screen bg-slate-50">
       <Header />
 
-      <main className="mx-auto grid max-w-7xl grid-cols-1 gap-6 px-6 py-6 lg:grid-cols-[1fr_320px]">
-        {/* 좌: 검색 + 카테고리 + 필터 + 장소 리스트 */}
+      <main className="mx-auto max-w-7xl px-6 py-6">
+        {/* 검색 + 카테고리 + 필터 + 장소 리스트 */}
         <section className="rounded-2xl border border-gray-200 bg-white p-5">
           <SearchBar value={query} onChange={setQuery} onSubmit={handleSearchSubmit} />
 
@@ -140,11 +139,6 @@ export default function Home() {
             </div>
           )}
         </section>
-
-        {/* 우: 안내 카드 */}
-        <aside className="bg-white p-4">
-          <PromoCards />
-        </aside>
       </main>
     </div>
   );
