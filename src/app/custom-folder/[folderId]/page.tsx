@@ -1,15 +1,17 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Header from "@/components/layout/Header";
 import FolderDetailHeader from "@/components/bookmarks/FolderDetailHeader";
 import FolderPlacesEmptyState from "@/components/bookmarks/FolderPlacesEmptyState";
 import { CustomFolder, Bookmark } from "@/types/bookmark";
 import { getBookmarksByFolderId, getFolderById, addBookmark } from "@/lib/bookmarkApi";
+import { savePlaceForDetail } from "@/components/places/placeHandoff";
 
 export default function FolderDetailPage(): React.ReactElement {
   const params = useParams();
+  const router = useRouter();
   const folderId = params.folderId as string;
   const savedPlacesRef = useRef<HTMLDivElement>(null);
 
@@ -52,6 +54,28 @@ export default function FolderDetailPage(): React.ReactElement {
       console.error('장소 검색 실패:', err);
     } finally {
       setSearching(false);
+    }
+  };
+
+  // 저장된 장소 클릭 시 상세 페이지로 이동
+  const handlePlaceClick = (bookmark: Bookmark) => {
+    if (bookmark.provider_place_id) {
+      const place = {
+        provider: 'kakao',
+        providerPlaceId: bookmark.provider_place_id,
+        name: bookmark.place_name || '',
+        category: bookmark.place_category || '',
+        address: bookmark.place_address || '',
+        categoryGroupCode: '',
+        roadAddress: '',
+        phone: '',
+        lat: 0,
+        lng: 0,
+        placeUrl: '',
+        distance: null,
+      };
+      savePlaceForDetail(place);
+      router.push(`/places/${bookmark.provider_place_id}`);
     }
   };
 
@@ -236,7 +260,8 @@ export default function FolderDetailPage(): React.ReactElement {
             {bookmarks.map((bookmark) => (
               <div
                 key={bookmark.id}
-                className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"
+                onClick={() => handlePlaceClick(bookmark)}
+                className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm cursor-pointer transition hover:-translate-y-1 hover:shadow-lg hover:shadow-slate-200"
               >
                 <h3 className="mb-3 text-lg font-bold text-slate-900">
                   {bookmark.place_name}
