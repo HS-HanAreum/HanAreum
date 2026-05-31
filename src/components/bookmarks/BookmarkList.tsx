@@ -24,8 +24,8 @@ export default function BookmarkList({ bookmarks }: BookmarkListProps) {
           className="flex items-center justify-between p-4 bg-white rounded-xl shadow-sm border border-gray-100"
         >
           <div>
-            <p className="font-medium text-gray-900">{bookmark.placeName}</p>
-            <p className="text-sm text-gray-400 mt-1">{bookmark.placeAddress}</p>
+            <p className="font-medium text-gray-900">{bookmark.place_name}</p>
+            <p className="text-sm text-gray-400 mt-1">{bookmark.place_address}</p>
           </div>
         </li>
       ))}

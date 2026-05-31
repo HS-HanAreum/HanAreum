@@ -42,12 +42,12 @@ export default function BookmarkPage() {
       setBookmarks(
         list.map((row) => ({
           id: row.id,
-          userId: uid,
-          placeId: row.places?.provider_place_id ?? '',
-          placeName: row.places?.name ?? '(이름 없음)',
-          placeAddress: row.places?.address ?? '',
-          folderId: row.folder_id,
-          createdAt: row.created_at,
+          user_id: uid,
+          place_id: row.places?.provider_place_id ?? '',
+          place_name: row.places?.name ?? '(이름 없음)',
+          place_address: row.places?.address ?? '',
+          folder_id: row.folder_id,
+          created_at: row.created_at,
         })),
       );
     })();
