@@ -59,7 +59,7 @@ export function StarIcon({ className, filled }: IconProps & { filled?: boolean }
 export function HeartIcon({ className, filled }: IconProps & { filled?: boolean }) {
   return (
     <svg className={className} {...base} fill={filled ? 'currentColor' : 'none'}>
-      <path d="M12 20s-7-4.5-9.2-9C1.4 8 2.8 4.5 6 4.5c2 0 3.2 1.3 4 2.6.8-1.3 2-2.6 4-2.6 3.2 0 4.6 3.5 3.2 6.5C19 15.5 12 20 12 20Z" />
+      <path d="M12 20.3l-1.45-1.32C5.4 14.36 2 11.28 2 7.5 2 4.42 4.42 2 7.5 2c1.74 0 3.41.81 4.5 2.09C13.09 2.81 14.76 2 16.5 2 19.58 2 22 4.42 22 7.5c0 3.78-3.4 6.86-8.55 11.54L12 20.3z" />
     </svg>
   );
 }

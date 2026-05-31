@@ -10,12 +10,19 @@
 -- =========================================================
 
 -- 사용자 프로필 (Supabase Auth 의 auth.users 와 1:1 연결)
+-- is_student: 가입 시 "학생입니다" 를 선택했는지. 리뷰의 재학생 인증 뱃지 표시에 사용한다.
 create table if not exists public.users (
   id         uuid primary key references auth.users (id) on delete cascade,
   email      text,
   nickname   text,
+  is_student boolean not null default false,
   created_at timestamptz not null default now()
 );
+
+-- (컬럼 추가) 이미 만들어진 users 테이블에도 is_student 컬럼을 반영한다.
+-- create table 은 "없을 때만" 생성하므로, 기존 DB 에는 이 alter 로만 컬럼이 추가된다.
+alter table public.users
+  add column if not exists is_student boolean not null default false;
 
 -- 장소 (외부 API 결과 전체가 아니라, 북마크/리뷰/동선에 쓰일 때만 저장)
 create table if not exists public.places (
@@ -28,9 +35,20 @@ create table if not exists public.places (
   lat               double precision,
   lng               double precision,
   place_url         text,
+  -- 상세페이지 표시용 보조 정보. 검색 API 결과엔 없어 운영자가 채우거나 비워둔다(없으면 화면에서 안내 문구로 대체).
+  menu_summary      text,
+  business_hours    text,
+  intro             text,
   created_at        timestamptz not null default now(),
   unique (provider, provider_place_id)
 );
+
+-- (컬럼 추가) 이미 만들어진 places 테이블에도 상세 보조 컬럼을 반영한다.
+-- create table 은 "없을 때만" 생성하므로, 기존 DB 에는 이 alter 로만 컬럼이 추가된다.
+alter table public.places
+  add column if not exists menu_summary   text,
+  add column if not exists business_hours text,
+  add column if not exists intro          text;
 
 -- 북마크 폴더 (사용자별 커스텀 분류)
 -- icon: 폴더 카드에 표시할 아이콘 키 (folder/coffee/book/food/star). 기본값 'folder'.
@@ -103,6 +121,7 @@ create table if not exists public.route_places (
 -- 2. 회원가입 시 프로필 자동 생성
 --    Auth(auth.users)에 가입이 생기면 public.users 행을 함께 만든다.
 --    nickname 기본값은 이메일 앞부분(@ 앞)으로 둔다.
+--    is_student 는 가입 폼이 user_metadata 에 'true'/'false' 문자열로 넣은 값을 boolean 으로 저장한다.
 -- =========================================================
 
 create or replace function public.handle_new_user()
@@ -112,8 +131,13 @@ security definer
 set search_path = public
 as $$
 begin
-  insert into public.users (id, email, nickname)
-  values (new.id, new.email, split_part(new.email, '@', 1));
+  insert into public.users (id, email, nickname, is_student)
+  values (
+    new.id,
+    new.email,
+    split_part(new.email, '@', 1),
+    coalesce(new.raw_user_meta_data ->> 'is_student', 'false') = 'true'
+  );
   return new;
 end;
 $$;

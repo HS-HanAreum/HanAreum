@@ -29,8 +29,10 @@ export const REVIEW_RATINGS = [5, 4, 3, 2, 1] as const;
 // 목록에 표시하는 리뷰 한 건
 export interface Review {
   id: string;
+  userId: string; // 작성자 user_id (본인 리뷰인지 판별해 수정/삭제 버튼 노출에 사용)
   author: string; // 작성자 닉네임
   rating: number; // 1~5
+  isStudent: boolean; // 작성자가 재학생 인증 사용자인지 (재학생 인증 뱃지 표시 여부)
   day: ReviewDay | null; // 미선택이면 null (태그 숨김)
   timeSlot: ReviewTimeSlot | null;
   congestion: ReviewCongestion | null;

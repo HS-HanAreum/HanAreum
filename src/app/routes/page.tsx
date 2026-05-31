@@ -81,6 +81,23 @@ function placesKey(places: RoutePlace[]): string {
   return places.map((place) => place.providerPlaceId).join('|');
 }
 
+// 배열에서 from 위치 항목을 to 위치로 옮긴 새 배열을 돌려준다(드래그 순서 변경 공용 헬퍼).
+function reorderList<T>(list: T[], fromIndex: number, toIndex: number): T[] {
+  if (
+    fromIndex === toIndex ||
+    fromIndex < 0 ||
+    toIndex < 0 ||
+    fromIndex >= list.length ||
+    toIndex >= list.length
+  ) {
+    return list;
+  }
+  const next = [...list];
+  const [moved] = next.splice(fromIndex, 1);
+  next.splice(toIndex, 0, moved);
+  return next;
+}
+
 // --- 아래는 Supabase 데이터 접근 함수들 ---
 // 모두 브라우저 supabase 클라이언트(anon key)로 호출하며, 접근 제어는 DB 의 RLS 가 담당한다.
 // places 에는 UPDATE 정책이 없으므로(북마크와 동일) upsert 는 "중복이면 무시"로만 쓰고 id 는 따로 조회한다.
@@ -241,6 +258,8 @@ export default function RoutesPage() {
   const [userId, setUserId] = useState<string | null>(null); // 로그인한 사용자 id (없으면 비로그인)
   const [loggedIn, setLoggedIn] = useState<boolean | null>(null); // null = 확인 중
   const [pending, setPending] = useState(false); // 저장/수정/삭제 진행 중(중복 클릭 방지)
+  const [dragIndex, setDragIndex] = useState<number | null>(null); // 선택한 동선에서 드래그 중인 항목 인덱스
+  const [savedDragIndex, setSavedDragIndex] = useState<number | null>(null); // 저장된 동선에서 드래그 중인 카드 인덱스
 
   // 첫 진입 시: 로그인 사용자를 확인하고, 로그인 상태면 저장된 동선을 Supabase 에서 불러온다.
   // 공유 링크(?route=)로 들어온 경우 동선을 미리보기에 복원하고, 로그인 상태면 내 계정에 자동 저장한다.
@@ -503,16 +522,46 @@ export default function RoutesPage() {
   const summary = selectedPlaces.map((place) => place.name).join(' → ');
   const isEditing = editingId !== null;
 
+  // 로그인 확인 중: 간단한 로딩 문구만 보여준다.
+  if (loggedIn === null) {
+    return (
+      <div className="min-h-screen bg-[#F8FAFC]">
+        <Header />
+        <main className="mx-auto max-w-7xl px-6 py-6">
+          <p className="mt-10 rounded-2xl border border-[#E2E8F0] bg-white p-8 text-center text-sm text-[#64748B]">
+            로그인 상태를 확인하는 중입니다.
+          </p>
+        </main>
+      </div>
+    );
+  }
+
+  // 비로그인: 동선 기능 UI를 숨기고 안내 카드만 보여준다.
+  if (loggedIn === false) {
+    return (
+      <div className="min-h-screen bg-[#F8FAFC]">
+        <Header />
+        <main className="mx-auto max-w-md px-6 py-16">
+          <div className="rounded-2xl border border-[#E2E8F0] bg-white p-8 text-center">
+            <p className="text-base font-medium text-[#0F172A]">로그인 후 이용 가능합니다.</p>
+            <Link
+              href="/login"
+              className="mt-4 inline-block rounded-lg bg-[#3B82F6] px-4 py-2 text-sm font-medium text-white hover:bg-[#2f6fd6]"
+            >
+              로그인 하러 가기
+            </Link>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
       <Header />
 
       <main className="mx-auto max-w-7xl px-6 py-6">
-        <Link href="/" className="text-sm text-[#64748B] hover:text-[#3B82F6]">
-          ← 홈으로
-        </Link>
-
-        <h1 className="mt-3 text-2xl font-bold text-[#0F172A]">
+        <h1 className="text-2xl font-bold text-[#0F172A]">
           HanAreum <span className="text-[#94A3B8]">/</span> 나만의 동선
         </h1>
         <p className="mt-1 text-sm text-[#64748B]">
@@ -540,7 +589,7 @@ export default function RoutesPage() {
 
         <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[360px_1fr]">
           {/* 1. 왼쪽: 장소 검색 */}
-          <section className="rounded-2xl border border-[#E2E8F0] bg-white p-5">
+          <section className="flex flex-col rounded-2xl border border-[#E2E8F0] bg-white p-5">
             <h2 className="text-base font-bold text-[#0F172A]">장소 검색</h2>
 
             <form
@@ -582,7 +631,7 @@ export default function RoutesPage() {
               ))}
             </div>
 
-            <div className="mt-4 flex flex-col gap-2">
+            <div className="mt-4 flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pr-2">
               {searchLoading ? (
                 <p className="rounded-xl border border-dashed border-[#E2E8F0] bg-white p-6 text-center text-sm text-[#94A3B8]">
                   검색 중...
@@ -674,11 +723,41 @@ export default function RoutesPage() {
                     왼쪽에서 장소를 선택해 동선을 만들어보세요.
                   </p>
                 ) : (
-                  <ol className="mt-4 flex flex-col gap-2">
+                  <ol className="mt-4 flex max-h-[228px] flex-col gap-2 overflow-y-auto pr-2">
                     {selectedPlaces.map((place, index) => (
                       <li
                         key={place.providerPlaceId}
-                        className="flex items-center gap-3 rounded-xl border border-[#E2E8F0] bg-white p-2.5"
+                        draggable
+                        onDragStart={(event) => {
+                          // 삭제 버튼에서 시작된 드래그는 막는다(클릭과 충돌 방지)
+                          if ((event.target as HTMLElement).closest('[data-no-drag]')) {
+                            event.preventDefault();
+                            return;
+                          }
+                          setDragIndex(index);
+                          event.dataTransfer.effectAllowed = 'move';
+                        }}
+                        onDragOver={(event) => {
+                          if (dragIndex === null) return;
+                          event.preventDefault();
+                          event.dataTransfer.dropEffect = 'move';
+                        }}
+                        onDrop={(event) => {
+                          event.preventDefault();
+                          if (dragIndex === null || dragIndex === index) {
+                            setDragIndex(null);
+                            return;
+                          }
+                          setSelectedPlaces((prev) => reorderList(prev, dragIndex, index));
+                          setShareUrl(''); // 순서가 바뀌면 이전 공유 링크는 무효화
+                          setDragIndex(null);
+                        }}
+                        onDragEnd={() => setDragIndex(null)}
+                        className={`flex cursor-grab items-center gap-3 rounded-xl border bg-white p-2.5 active:cursor-grabbing ${
+                          dragIndex === index
+                            ? 'border-[#3B82F6] bg-[#B6EEFF]/40 opacity-60'
+                            : 'border-[#E2E8F0]'
+                        }`}
                       >
                         <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#3B82F6] text-xs font-bold text-white">
                           {index + 1}
@@ -691,6 +770,7 @@ export default function RoutesPage() {
                         </div>
                         <button
                           type="button"
+                          data-no-drag
                           onClick={() => handleRemovePlace(place.providerPlaceId)}
                           className="shrink-0 rounded px-2 py-1 text-xs text-[#64748B] hover:text-red-500"
                         >
@@ -785,18 +865,40 @@ export default function RoutesPage() {
                 <div className="mt-3 flex flex-col gap-2">
                   {!loaded ? (
                     <p className="text-sm text-[#94A3B8]">불러오는 중...</p>
-                  ) : loggedIn === false ? (
-                    <p className="rounded-xl border border-dashed border-[#E2E8F0] bg-[#F8FAFC] p-6 text-center text-sm text-[#94A3B8]">
-                      로그인 후 동선을 저장할 수 있습니다.
-                    </p>
                   ) : savedRoutes.length === 0 ? (
                     <p className="rounded-xl border border-dashed border-[#E2E8F0] bg-[#F8FAFC] p-6 text-center text-sm text-[#94A3B8]">
                       아직 저장된 동선이 없습니다.
                     </p>
                   ) : (
-                    savedRoutes.map((route) => (
+                    savedRoutes.map((route, index) => (
                       <div
                         key={route.id}
+                        draggable
+                        onDragStart={(event) => {
+                          // 삭제 버튼에서 시작된 드래그는 막는다(클릭과 충돌 방지)
+                          if ((event.target as HTMLElement).closest('[data-no-drag]')) {
+                            event.preventDefault();
+                            return;
+                          }
+                          setSavedDragIndex(index);
+                          event.dataTransfer.effectAllowed = 'move';
+                        }}
+                        onDragOver={(event) => {
+                          if (savedDragIndex === null) return;
+                          event.preventDefault();
+                          event.dataTransfer.dropEffect = 'move';
+                        }}
+                        onDrop={(event) => {
+                          event.preventDefault();
+                          if (savedDragIndex === null || savedDragIndex === index) {
+                            setSavedDragIndex(null);
+                            return;
+                          }
+                          // UI 임시 정렬만 적용한다(DB 에는 순서 컬럼이 없어 새로 불러오면 created_at 기준으로 돌아간다)
+                          setSavedRoutes((prev) => reorderList(prev, savedDragIndex, index));
+                          setSavedDragIndex(null);
+                        }}
+                        onDragEnd={() => setSavedDragIndex(null)}
                         role="button"
                         tabIndex={0}
                         onClick={() => handleLoadRoute(route)}
@@ -807,6 +909,8 @@ export default function RoutesPage() {
                           }
                         }}
                         className={`cursor-pointer rounded-xl border bg-white p-3 text-left transition-colors hover:border-[#3B82F6] focus:outline-none focus:ring-1 focus:ring-[#3B82F6] ${
+                          savedDragIndex === index ? 'opacity-60' : ''
+                        } ${
                           editingId === route.id ? 'border-[#3B82F6] ring-1 ring-[#3B82F6]' : 'border-[#E2E8F0]'
                         }`}
                       >
@@ -819,6 +923,7 @@ export default function RoutesPage() {
                           </div>
                           <button
                             type="button"
+                            data-no-drag
                             onClick={(event) => {
                               event.stopPropagation(); // 카드 클릭(불러오기)이 함께 실행되지 않도록 전파 차단
                               handleDelete(route.id);
