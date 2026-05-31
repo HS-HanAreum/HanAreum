@@ -190,17 +190,6 @@ export default function PlaceDetail({ place }: PlaceDetailProps) {
               </a>
             </div>
           </section>
-
-          {/* 작은 지도 (좌표 기준) */}
-          <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white">
-            <div className="h-56 w-full">
-              <KakaoMap
-                center={{ lat: place.lat, lng: place.lng }}
-                places={[place]}
-                selectedPlaceId={place.providerPlaceId}
-              />
-            </div>
-          </section>
         </aside>
       </div>
     </div>
