@@ -1,5 +1,3 @@
-import Link from "next/link";
-
 export default function FolderPlacesEmptyState(): React.ReactElement {
   return (
     <section className="rounded-2xl border border-dashed border-gray-200 bg-white p-16 text-center shadow-sm">
@@ -12,13 +10,6 @@ export default function FolderPlacesEmptyState(): React.ReactElement {
       <p className="mt-4 text-lg font-semibold text-slate-500">
         자주 가는 장소를 추가해보세요.
       </p>
-      <Link
-        href="/places"
-        className="mx-auto mt-8 inline-flex h-14 items-center gap-2 rounded-2xl bg-blue-600 px-7 text-lg font-black text-white shadow-lg shadow-blue-200 transition hover:-translate-y-0.5"
-      >
-        <span>🔍</span>
-        <span>장소 찾아보기</span>
-      </Link>
     </section>
   );
 }

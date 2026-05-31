@@ -17,14 +17,14 @@ export async function POST(request: NextRequest) {
     const supabase = getServiceClient();
     const { folderId, placeId, placeName, placeAddress, placeCategory } = await request.json();
 
-    if (!folderId || !placeId || !placeName) {
+    if (!folderId || !placeId) {
       return NextResponse.json(
-        { error: 'Missing required fields' },
+        { error: 'Missing required fields: folderId, placeId' },
         { status: 400 }
       );
     }
 
-    // 사용자 확인 (Authorization 헤더 또는 Supabase Auth)
+    // 사용자 확인 (Authorization 헤더)
     const authHeader = request.headers.get('authorization');
     if (!authHeader) {
       return NextResponse.json(
@@ -43,16 +43,54 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // 장소가 places 테이블에 이미 있는지 확인
+    let placeDbId: string | null = null;
+
+    const { data: existingPlace, error: selectError } = await supabase
+      .from('places')
+      .select('id')
+      .eq('provider', 'kakao')
+      .eq('provider_place_id', placeId)
+      .maybeSingle();
+
+    if (existingPlace) {
+      placeDbId = existingPlace.id;
+    } else if (placeName) {
+      // 장소가 없으면 새로 생성
+      const { data: newPlace, error: placeError } = await supabase
+        .from('places')
+        .insert({
+          provider: 'kakao',
+          provider_place_id: placeId,
+          name: placeName,
+          category: placeCategory || null,
+          address: placeAddress || null,
+        })
+        .select('id')
+        .single();
+
+      if (placeError) {
+        return NextResponse.json(
+          { error: `Failed to create place: ${placeError.message}` },
+          { status: 400 }
+        );
+      }
+
+      placeDbId = newPlace.id;
+    } else {
+      return NextResponse.json(
+        { error: 'Place not found and placeName is required' },
+        { status: 400 }
+      );
+    }
+
     // 북마크 추가
     const { data, error } = await supabase
       .from('bookmarks')
       .insert({
         user_id: user.id,
         folder_id: folderId,
-        place_id: placeId,
-        place_name: placeName,
-        place_address: placeAddress,
-        place_category: placeCategory || null,
+        place_id: placeDbId,
       })
       .select()
       .single();
