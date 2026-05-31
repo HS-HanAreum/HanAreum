@@ -1,5 +1,5 @@
 import { type FormEvent } from 'react';
-import { SearchIcon, FilterIcon } from '@/components/icons';
+import { SearchIcon } from '@/components/icons';
 
 interface SearchBarProps {
   value: string;
@@ -26,13 +26,6 @@ export default function SearchBar({ value, onChange, onSubmit }: SearchBarProps)
         placeholder="장소, 카테고리, 키워드 검색"
         className="flex-1 bg-transparent text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none"
       />
-      <button
-        type="button"
-        title="필터 (준비 중)"
-        className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100"
-      >
-        <FilterIcon className="h-5 w-5" />
-      </button>
     </form>
   );
 }

@@ -172,7 +172,7 @@ export default function PlaceDetail({ place }: PlaceDetailProps) {
 
       {/* 리뷰 섹션 (필터 사이드바 + 리뷰 목록) */}
       <div className="mt-6">
-        <ReviewList />
+        <ReviewList place={place} />
       </div>
     </div>
   );
