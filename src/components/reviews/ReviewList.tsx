@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { HeartIcon, StarIcon } from '@/components/icons';
 import ReviewForm from './ReviewForm';
+import type { Place } from '@/types/place';
 import {
   REVIEW_CONGESTION_LEVELS,
   REVIEW_DAYS,
@@ -16,33 +17,9 @@ import {
   type ReviewTimeSlot,
 } from '@/types/review';
 
-// 처음 화면을 채우기 위한 예시 리뷰 (프론트 표시용 샘플)
-const SAMPLE_REVIEWS: Review[] = [
-  {
-    id: 'sample-1',
-    author: '한성이',
-    rating: 5,
-    day: '수',
-    timeSlot: '12-14시',
-    congestion: '보통',
-    content: '점심시간에 갔는데 자리도 적당히 있고 조용해서 공부하기 좋았어요.',
-    time: '12:44',
-    likeCount: 3,
-    liked: false,
-  },
-  {
-    id: 'sample-2',
-    author: '상상부기',
-    rating: 4,
-    day: '금',
-    timeSlot: '18-20시',
-    congestion: '혼잡',
-    content: '저녁엔 사람이 많아서 조금 시끄러웠지만 분위기는 좋았습니다.',
-    time: '19:10',
-    likeCount: 1,
-    liked: false,
-  },
-];
+interface ReviewListProps {
+  place: Place; // 어떤 장소의 리뷰인지 (place_id 보장/조회에 사용)
+}
 
 // 혼잡도 태그 색상 (여유=초록, 보통=노랑, 혼잡=빨강). 글자는 가독성 위해 짙은 회색.
 const CONGESTION_TAG_CLASS: Record<ReviewCongestion, string> = {
@@ -51,15 +28,96 @@ const CONGESTION_TAG_CLASS: Record<ReviewCongestion, string> = {
   혼잡: 'bg-[#FCA5A5] text-slate-800',
 };
 
-// 현재 시각을 "HH:MM" 형태로 만든다.
-function formatNowTime(): string {
-  const now = new Date();
-  const hh = String(now.getHours()).padStart(2, '0');
-  const mm = String(now.getMinutes()).padStart(2, '0');
+// created_at(ISO 문자열)을 "HH:MM" 형태로 만든다.
+function formatTime(iso: string): string {
+  const date = new Date(iso);
+  const hh = String(date.getHours()).padStart(2, '0');
+  const mm = String(date.getMinutes()).padStart(2, '0');
   return `${hh}:${mm}`;
 }
 
-// 필터 사이드바에서 쓰는 알약 버튼
+// DB 에서 읽은 문자열이 허용된 라벨일 때만 그대로 쓰고, 아니면 null 로 둔다(태그 숨김).
+function asMember<T extends string>(value: string | null, allowed: readonly T[]): T | null {
+  return value && (allowed as readonly string[]).includes(value) ? (value as T) : null;
+}
+
+// --- Supabase 데이터 접근 (브라우저 anon 클라이언트, 접근 제어는 RLS 가 담당) ---
+
+// reviews 조회 결과 행 타입 (users 는 to-one, review_likes 는 to-many)
+interface DbReviewRow {
+  id: string;
+  rating: number;
+  content: string | null;
+  visit_day: string | null;
+  visit_time_slot: string | null;
+  congestion: string | null;
+  created_at: string;
+  user_id: string;
+  users: { nickname: string | null } | null;
+  review_likes: { user_id: string }[];
+}
+
+// 장소의 place_id(uuid)를 조회한다. 아직 저장된 적 없으면 null (= 리뷰도 없음).
+// 단순 조회만 한다(저장 X). 장소 저장은 리뷰 작성 시에만 한다.
+async function findPlaceId(place: Place): Promise<string | null> {
+  const { data } = await supabase
+    .from('places')
+    .select('id')
+    .eq('provider', place.provider)
+    .eq('provider_place_id', place.providerPlaceId)
+    .maybeSingle();
+  return (data?.id as string | undefined) ?? null;
+}
+
+// 장소를 places 에 보장(없으면 저장)하고 place_id 를 돌려준다. (동선 저장과 같은 방식)
+async function ensurePlaceId(place: Place): Promise<string> {
+  const { error: upsertError } = await supabase.from('places').upsert(
+    {
+      provider: place.provider,
+      provider_place_id: place.providerPlaceId,
+      name: place.name,
+      category: place.category,
+      address: place.address,
+      lat: place.lat,
+      lng: place.lng,
+      place_url: place.placeUrl,
+    },
+    { onConflict: 'provider,provider_place_id', ignoreDuplicates: true },
+  );
+  if (upsertError) throw upsertError;
+
+  const id = await findPlaceId(place);
+  if (!id) throw new Error('장소 조회 실패');
+  return id;
+}
+
+// 장소의 리뷰를 최신순으로 불러온다. 좋아요 수/내가 눌렀는지도 함께 계산한다.
+async function loadReviews(placeId: string, currentUserId: string | null): Promise<Review[]> {
+  const { data, error } = await supabase
+    .from('reviews')
+    .select(
+      'id, rating, content, visit_day, visit_time_slot, congestion, created_at, user_id, users ( nickname ), review_likes ( user_id )',
+    )
+    .eq('place_id', placeId)
+    .order('created_at', { ascending: false });
+  if (error || !data) throw error ?? new Error('리뷰 조회 실패');
+
+  const rows = data as unknown as DbReviewRow[];
+  return rows.map((row) => ({
+    id: row.id,
+    author: row.users?.nickname ?? '사용자',
+    rating: Number(row.rating),
+    day: asMember(row.visit_day, REVIEW_DAYS),
+    timeSlot: asMember(row.visit_time_slot, REVIEW_TIME_SLOTS),
+    congestion: asMember(row.congestion, REVIEW_CONGESTION_LEVELS),
+    content: row.content ?? '',
+    time: formatTime(row.created_at),
+    likeCount: row.review_likes.length,
+    liked: currentUserId ? row.review_likes.some((like) => like.user_id === currentUserId) : false,
+  }));
+}
+
+// 선택 가능한 알약 버튼 (필터 사이드바)
 function FilterPill({
   label,
   selected,
@@ -98,10 +156,12 @@ function toggleInSet<T>(set: Set<T>, value: T): Set<T> {
   return next;
 }
 
-export default function ReviewList() {
-  const [reviews, setReviews] = useState<Review[]>(SAMPLE_REVIEWS);
+export default function ReviewList({ place }: ReviewListProps) {
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [nickname, setNickname] = useState('사용자');
+  const [userId, setUserId] = useState<string | null>(null);
+  const [placeId, setPlaceId] = useState<string | null>(null);
 
   // 필터 상태 (여러 개 동시 선택 가능)
   const [dayFilter, setDayFilter] = useState<Set<ReviewDay>>(new Set());
@@ -109,52 +169,101 @@ export default function ReviewList() {
   const [congestionFilter, setCongestionFilter] = useState<Set<ReviewCongestion>>(new Set());
   const [ratingFilter, setRatingFilter] = useState<Set<number>>(new Set());
 
-  // 로그인한 사용자의 닉네임을 가져온다 (AuthNav와 같은 방식).
+  // 마운트 시: 로그인 사용자(닉네임)와 이 장소의 리뷰를 불러온다.
   useEffect(() => {
     let active = true;
-    supabase.auth.getUser().then(({ data }) => {
+    (async () => {
+      const { data: userData } = await supabase.auth.getUser();
+      const uid = userData.user?.id ?? null;
       if (!active) return;
-      const user = data.user;
-      if (!user) return;
-      const meta = (user.user_metadata ?? {}) as Record<string, string | undefined>;
-      const name = meta.username ?? (user.email ? user.email.split('@')[0] : '');
-      if (name) setNickname(name);
-    });
+      setUserId(uid);
+
+      try {
+        const id = await findPlaceId(place);
+        if (!active) return;
+        setPlaceId(id);
+        const list = id ? await loadReviews(id, uid) : [];
+        if (!active) return;
+        setReviews(list);
+      } catch {
+        if (active) setReviews([]);
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
     return () => {
       active = false;
     };
+    // place 는 상세 페이지 진입 시 고정이라 최초 1회만 불러온다
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 작성 모달에서 등록하면 목록 맨 앞에 추가한다.
-  function handleSubmit(input: ReviewFormInput) {
-    const newReview: Review = {
-      id: crypto.randomUUID(),
-      author: nickname,
-      rating: input.rating,
-      day: input.day ?? '월',
-      timeSlot: input.timeSlot ?? '12-14시',
-      congestion: input.congestion ?? '보통',
-      content: input.content,
-      time: formatNowTime(),
-      likeCount: 0,
-      liked: false,
-    };
-    setReviews((prev) => [newReview, ...prev]);
+  // 작성 모달에서 등록하면 Supabase 에 저장하고 목록을 새로고침한다.
+  async function handleSubmit(input: ReviewFormInput) {
+    if (!userId) {
+      alert('로그인 후 리뷰를 작성할 수 있습니다.');
+      return;
+    }
+    try {
+      const id = placeId ?? (await ensurePlaceId(place));
+      if (!placeId) setPlaceId(id);
+
+      const { error } = await supabase.from('reviews').insert({
+        user_id: userId,
+        place_id: id,
+        rating: input.rating,
+        content: input.content,
+        visit_day: input.day,
+        visit_time_slot: input.timeSlot,
+        congestion: input.congestion,
+      });
+      if (error) throw error;
+
+      setReviews(await loadReviews(id, userId));
+    } catch {
+      alert('리뷰 저장에 실패했습니다. 잠시 후 다시 시도해주세요.');
+    }
   }
 
-  // 좋아요 토글 (프론트 상태로만 처리)
-  function handleToggleLike(id: string) {
+  // 좋아요 토글: 로그인 사용자만. 화면을 먼저 바꾸고(낙관적) DB 에 반영, 실패하면 새로고침으로 되돌린다.
+  async function handleToggleLike(id: string) {
+    if (!userId) {
+      alert('로그인 후 좋아요를 누를 수 있습니다.');
+      return;
+    }
+    const target = reviews.find((review) => review.id === id);
+    if (!target) return;
+    const nextLiked = !target.liked;
+
     setReviews((prev) =>
       prev.map((review) =>
         review.id === id
           ? {
               ...review,
-              liked: !review.liked,
-              likeCount: review.liked ? review.likeCount - 1 : review.likeCount + 1,
+              liked: nextLiked,
+              likeCount: nextLiked ? review.likeCount + 1 : review.likeCount - 1,
             }
           : review,
       ),
     );
+
+    try {
+      if (nextLiked) {
+        const { error } = await supabase
+          .from('review_likes')
+          .insert({ user_id: userId, review_id: id });
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('review_likes')
+          .delete()
+          .eq('user_id', userId)
+          .eq('review_id', id);
+        if (error) throw error;
+      }
+    } catch {
+      if (placeId) setReviews(await loadReviews(placeId, userId));
+    }
   }
 
   function resetFilters() {
@@ -164,11 +273,16 @@ export default function ReviewList() {
     setRatingFilter(new Set());
   }
 
-  // 선택된 필터를 모두 만족하는 리뷰만 보여준다 (빈 필터는 전체 통과).
+  // 선택된 필터를 모두 만족하는 리뷰만 보여준다 (빈 필터는 전체 통과, 값이 없는 리뷰는 해당 필터에서 제외).
   const visibleReviews = reviews.filter((review) => {
-    if (dayFilter.size > 0 && !dayFilter.has(review.day)) return false;
-    if (timeFilter.size > 0 && !timeFilter.has(review.timeSlot)) return false;
-    if (congestionFilter.size > 0 && !congestionFilter.has(review.congestion)) return false;
+    if (dayFilter.size > 0 && (review.day === null || !dayFilter.has(review.day))) return false;
+    if (timeFilter.size > 0 && (review.timeSlot === null || !timeFilter.has(review.timeSlot)))
+      return false;
+    if (
+      congestionFilter.size > 0 &&
+      (review.congestion === null || !congestionFilter.has(review.congestion))
+    )
+      return false;
     if (ratingFilter.size > 0 && !ratingFilter.has(Math.floor(review.rating))) return false;
     return true;
   });
@@ -268,9 +382,15 @@ export default function ReviewList() {
 
         {/* 우: 리뷰 목록 */}
         <div className="space-y-3">
-          {visibleReviews.length === 0 ? (
+          {loading ? (
             <div className="rounded-xl border border-gray-200 bg-white p-8 text-center">
-              <p className="text-sm text-slate-400">조건에 맞는 리뷰가 없어요.</p>
+              <p className="text-sm text-slate-400">리뷰를 불러오는 중...</p>
+            </div>
+          ) : visibleReviews.length === 0 ? (
+            <div className="rounded-xl border border-gray-200 bg-white p-8 text-center">
+              <p className="text-sm text-slate-400">
+                {reviews.length === 0 ? '아직 리뷰가 없어요. 첫 리뷰를 남겨보세요.' : '조건에 맞는 리뷰가 없어요.'}
+              </p>
             </div>
           ) : (
             visibleReviews.map((review) => (
@@ -287,17 +407,23 @@ export default function ReviewList() {
                     <div>
                       <p className="text-sm font-semibold text-slate-900">{review.author}</p>
                       <div className="mt-1 flex flex-wrap gap-1">
-                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500">
-                          {review.day}
-                        </span>
-                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500">
-                          {review.timeSlot}
-                        </span>
-                        <span
-                          className={`rounded-full px-2 py-0.5 text-xs font-medium ${CONGESTION_TAG_CLASS[review.congestion]}`}
-                        >
-                          {review.congestion}
-                        </span>
+                        {review.day && (
+                          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500">
+                            {review.day}
+                          </span>
+                        )}
+                        {review.timeSlot && (
+                          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500">
+                            {review.timeSlot}
+                          </span>
+                        )}
+                        {review.congestion && (
+                          <span
+                            className={`rounded-full px-2 py-0.5 text-xs font-medium ${CONGESTION_TAG_CLASS[review.congestion]}`}
+                          >
+                            {review.congestion}
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
