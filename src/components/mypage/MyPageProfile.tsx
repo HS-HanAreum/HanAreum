@@ -57,6 +57,10 @@ export default function MyPageProfile() {
   const [saveError, setSaveError] = useState('');
   const [saveMsg, setSaveMsg] = useState('');
 
+  // 계정 삭제 상태
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
+
   useEffect(() => {
     let active = true;
 
@@ -165,6 +169,42 @@ export default function MyPageProfile() {
 
   async function handleLogout() {
     setLoggingOut(true);
+    await supabase.auth.signOut();
+    router.replace('/login');
+  }
+
+  async function handleDeleteAccount() {
+    const confirmed = window.confirm(
+      '정말로 계정을 삭제하시겠습니까?\n저장한 폴더, 북마크, 리뷰, 동선이 모두 영구 삭제되며 복구할 수 없습니다.',
+    );
+    if (!confirmed) return;
+
+    setDeleting(true);
+    setDeleteError('');
+
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (!session) {
+      router.replace('/login');
+      return;
+    }
+
+    const res = await fetch('/api/auth/delete-account', {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+      },
+    });
+
+    if (!res.ok) {
+      const body = (await res.json().catch(() => ({}))) as { error?: string };
+      setDeleteError(`계정 삭제에 실패했습니다. (${body.error ?? res.statusText})`);
+      setDeleting(false);
+      return;
+    }
+
+    // 삭제 성공 -> 로컬 세션도 정리하고 로그인 화면으로
     await supabase.auth.signOut();
     router.replace('/login');
   }
@@ -342,6 +382,21 @@ export default function MyPageProfile() {
         className="w-full rounded-lg border border-blue-200 bg-white px-4 py-2.5 text-sm font-semibold text-blue-600 transition-colors hover:bg-blue-50 disabled:cursor-not-allowed disabled:text-blue-300"
       >
         {loggingOut ? '로그아웃 중...' : '로그아웃'}
+      </button>
+
+      {deleteError && (
+        <p className="text-sm text-red-600" role="alert">
+          {deleteError}
+        </p>
+      )}
+
+      <button
+        type="button"
+        onClick={handleDeleteAccount}
+        disabled={deleting}
+        className="w-full rounded-lg border border-red-200 bg-white px-4 py-2.5 text-sm font-semibold text-red-600 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:text-red-300"
+      >
+        {deleting ? '삭제 중...' : '계정 삭제하기'}
       </button>
     </div>
   );
