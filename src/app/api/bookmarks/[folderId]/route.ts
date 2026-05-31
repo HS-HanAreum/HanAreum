@@ -47,7 +47,7 @@ export async function GET(
         place_id,
         folder_id,
         created_at,
-        places(name, category, address)
+        places(name, category, address, provider_place_id)
       `)
       .eq('folder_id', folderId)
       .eq('user_id', user.id);
@@ -69,6 +69,7 @@ export async function GET(
       place_name: bookmark.places?.name,
       place_category: bookmark.places?.category,
       place_address: bookmark.places?.address,
+      provider_place_id: bookmark.places?.provider_place_id,
     }));
 
     return NextResponse.json(bookmarksWithPlaces);
