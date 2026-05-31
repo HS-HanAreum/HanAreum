@@ -814,10 +814,6 @@ export default function RoutesPage() {
                 <div className="mt-3 flex flex-col gap-2">
                   {!loaded ? (
                     <p className="text-sm text-[#94A3B8]">불러오는 중...</p>
-                  ) : loggedIn === false ? (
-                    <p className="rounded-xl border border-dashed border-[#E2E8F0] bg-[#F8FAFC] p-6 text-center text-sm text-[#94A3B8]">
-                      로그인 후 동선을 저장할 수 있습니다.
-                    </p>
                   ) : savedRoutes.length === 0 ? (
                     <p className="rounded-xl border border-dashed border-[#E2E8F0] bg-[#F8FAFC] p-6 text-center text-sm text-[#94A3B8]">
                       아직 저장된 동선이 없습니다.
