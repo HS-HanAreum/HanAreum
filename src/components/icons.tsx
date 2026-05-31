@@ -48,10 +48,18 @@ export function BookmarkIcon({ className, filled }: IconProps & { filled?: boole
   );
 }
 
-export function StarIcon({ className }: IconProps) {
+export function StarIcon({ className, filled }: IconProps & { filled?: boolean }) {
   return (
-    <svg className={className} {...base}>
+    <svg className={className} {...base} fill={filled ? 'currentColor' : 'none'}>
       <path d="M12 3.5l2.6 5.3 5.8.9-4.2 4.1 1 5.8L12 16.9 6 19.6l1-5.8-4.2-4.1 5.8-.9L12 3.5Z" />
+    </svg>
+  );
+}
+
+export function HeartIcon({ className, filled }: IconProps & { filled?: boolean }) {
+  return (
+    <svg className={className} {...base} fill={filled ? 'currentColor' : 'none'}>
+      <path d="M12 20s-7-4.5-9.2-9C1.4 8 2.8 4.5 6 4.5c2 0 3.2 1.3 4 2.6.8-1.3 2-2.6 4-2.6 3.2 0 4.6 3.5 3.2 6.5C19 15.5 12 20 12 20Z" />
     </svg>
   );
 }

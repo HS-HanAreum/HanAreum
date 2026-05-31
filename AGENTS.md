@@ -94,6 +94,7 @@ DB 변경 제안:
 - 관련 없는 코드 포맷팅
 - `main` 또는 `dev` 직접 push
 - PR 없이 merge
+- 모든 브랜치에 force push (`git push --force`, `--force-with-lease`, `git push -f`) — 본인 `feat/*` 포함
 - 실패한 작업을 성공했다고 말하기
 - Google Maps 사용
 - Naver를 Kakao 대체 지도/검색 기준 데이터로 사용하는 것
@@ -156,6 +157,13 @@ test
 커밋 메시지에 `Co-Authored-By` 같은 공동 작성자 트레일러를 넣지 않는다.
 
 PR base는 항상 `dev`로 한다. merge는 기술 리드만 한다. conflict가 나면 바로 수정하지 말고 상황을 정리한다.
+
+### force push 금지
+
+- 어떤 브랜치에도 force push(`git push --force`, `--force-with-lease`, `git push -f`)를 하지 않는다. 본인 `feat/*` 브랜치도 포함한다.
+- 에이전트는 force push 명령을 절대 직접 실행하지 않는다. push가 거부(rejected)되면 force로 덮지 말고, 먼저 `git pull`로 원격 변경을 받아 병합한다.
+- push가 거부되거나 히스토리가 꼬였다고 판단되면, 임의로 해결하지 말고 상황(거부 메시지, `git status`, `git log` 결과)을 정리해 기술 리드에게 보고한다.
+- force push가 필요해 보이는 상황은 거의 없다. 정말 필요하면 기술 리드 확인을 먼저 받는다.
 
 ## 7. 작업 후 보고
 

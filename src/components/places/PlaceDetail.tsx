@@ -5,6 +5,7 @@ import KakaoMap from '@/components/map/KakaoMap';
 import BookmarkButton from '@/components/bookmarks/BookmarkButton';
 import PlaceImage from './PlaceImage';
 import DistanceDots, { distanceLevel, distanceLabel } from './DistanceDots';
+import ReviewList from '@/components/reviews/ReviewList';
 
 interface PlaceDetailProps {
   place: Place;
@@ -115,21 +116,6 @@ export default function PlaceDetail({ place }: PlaceDetailProps) {
             <h2 className="mb-2 text-sm font-semibold text-slate-900">시간대별 혼잡도</h2>
             <p className="text-sm text-slate-400">혼잡도 준비중</p>
           </section>
-
-          {/* 리뷰 (리뷰 기능 연동 후 표시 → 준비중) */}
-          <section className="rounded-2xl border border-gray-200 bg-white p-5">
-            <div className="mb-2 flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-slate-900">리뷰</h2>
-              <button
-                type="button"
-                title="준비 중"
-                className="cursor-default rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-400"
-              >
-                리뷰 작성하기
-              </button>
-            </div>
-            <p className="text-sm text-slate-400">리뷰 준비중</p>
-          </section>
         </div>
 
         {/* 우: 요약 + 액션 + 지도 */}
@@ -193,6 +179,11 @@ export default function PlaceDetail({ place }: PlaceDetailProps) {
             </div>
           </section>
         </aside>
+      </div>
+
+      {/* 리뷰 섹션 (필터 사이드바 + 리뷰 목록) */}
+      <div className="mt-6">
+        <ReviewList />
       </div>
     </div>
   );

@@ -33,6 +33,7 @@ export interface Bookmark {
   userId: string;
   placeId: string;
   placeName: string;
+  placeCategory?: string;
   placeAddress: string;
   folderId: string | null;
   createdAt: string;
