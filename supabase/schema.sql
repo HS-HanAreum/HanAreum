@@ -56,16 +56,30 @@ create table if not exists public.bookmarks (
   created_at timestamptz not null default now()
 );
 
--- 리뷰 (별점 + 한 줄 평 + 방문 시간대)
+-- 리뷰 (별점 + 한 줄 평 + 방문 요일/시간대 + 체감 혼잡도)
+-- visit_day/visit_time_slot/congestion 은 화면의 한국어 라벨('수', '12-14시', '보통')을 그대로 저장한다.
 create table if not exists public.reviews (
   id              uuid primary key default gen_random_uuid(),
   user_id         uuid not null references public.users (id) on delete cascade,
   place_id        uuid not null references public.places (id) on delete cascade,
   rating          numeric not null check (rating >= 0 and rating <= 5),
   content         text,
-  visit_time_slot text check (visit_time_slot in ('morning', 'lunch', 'afternoon', 'evening', 'night')),
+  visit_day       text,
+  visit_time_slot text,
+  congestion      text,
   created_at      timestamptz not null default now()
 );
+
+-- (컬럼 추가) 이미 만들어진 reviews 테이블에도 요일·혼잡도 컬럼을 반영한다.
+-- create table 은 "없을 때만" 생성하므로, 기존 DB 에는 이 alter 로만 컬럼이 추가된다.
+alter table public.reviews
+  add column if not exists visit_day text,
+  add column if not exists congestion text;
+
+-- (제약 해제) visit_time_slot 은 예전엔 영문 5종(morning/lunch/...) 만 허용했지만,
+-- 이제 화면의 한국어 시간대 라벨('08-10시' 등)을 그대로 저장하므로 기존 체크 제약을 푼다.
+alter table public.reviews
+  drop constraint if exists reviews_visit_time_slot_check;
 
 -- 동선
 create table if not exists public.routes (
