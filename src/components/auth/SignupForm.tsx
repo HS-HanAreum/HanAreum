@@ -26,6 +26,8 @@ export default function SignupForm() {
   const [password, setPassword] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');
   const [name, setName] = useState('');
+  // '' = 미선택, 'yes' = 학생, 'no' = 비학생. 'yes' 일 때만 학생 정보 입력란이 노출된다.
+  const [isStudent, setIsStudent] = useState<'' | 'yes' | 'no'>('');
   const [birthDate, setBirthDate] = useState('');
   const [gender, setGender] = useState('');
   const [studentNo, setStudentNo] = useState('');
@@ -48,6 +50,7 @@ export default function SignupForm() {
       password: get('password'),
       passwordConfirm: get('password-confirm'),
       name: get('name').trim(),
+      isStudent: get('is-student'), // 'yes' | 'no' | ''
       birthDate: get('birth-date'),
       gender: get('gender'),
       studentNo: get('student-no').trim(),
@@ -59,19 +62,8 @@ export default function SignupForm() {
 
   // 제출 전 입력값 검증. 문제가 있으면 안내 문구를 돌려준다.
   function validate(v: ReturnType<typeof readForm>): string | null {
-    if (
-      !v.username ||
-      !v.password ||
-      !v.passwordConfirm ||
-      !v.name ||
-      !v.birthDate ||
-      !v.gender ||
-      !v.studentNo ||
-      !v.grade ||
-      !v.major ||
-      !v.enrollmentStatus
-    ) {
-      return '모든 항목을 입력해 주세요.';
+    if (!v.username || !v.password || !v.passwordConfirm || !v.name) {
+      return '아이디, 비밀번호, 이름을 모두 입력해 주세요.';
     }
     if (!ID_PATTERN.test(v.username)) {
       return `아이디 형식이 올바르지 않습니다. (${ID_RULE_TEXT})`;
@@ -81,6 +73,21 @@ export default function SignupForm() {
     }
     if (v.password !== v.passwordConfirm) {
       return '비밀번호가 서로 일치하지 않습니다.';
+    }
+    if (v.isStudent !== 'yes' && v.isStudent !== 'no') {
+      return '학생 여부를 선택해 주세요.';
+    }
+    if (v.isStudent === 'yes') {
+      if (
+        !v.birthDate ||
+        !v.gender ||
+        !v.studentNo ||
+        !v.grade ||
+        !v.major ||
+        !v.enrollmentStatus
+      ) {
+        return '학생 정보를 모두 입력해 주세요.';
+      }
     }
     return null;
   }
@@ -97,22 +104,26 @@ export default function SignupForm() {
       return;
     }
 
+    // 학생일 때만 학생 정보를 user_metadata 에 함께 저장한다.
+    const profileData: Record<string, string> = {
+      username: values.username,
+      name: values.name,
+      is_student: values.isStudent === 'yes' ? 'true' : 'false',
+    };
+    if (values.isStudent === 'yes') {
+      profileData.birth_date = values.birthDate;
+      profileData.gender = values.gender;
+      profileData.student_no = values.studentNo;
+      profileData.grade = values.grade;
+      profileData.major = values.major;
+      profileData.enrollment_status = values.enrollmentStatus;
+    }
+
     setLoading(true);
     const { data, error } = await supabase.auth.signUp({
       email: idToEmail(values.username),
       password: values.password,
-      options: {
-        data: {
-          username: values.username,
-          name: values.name,
-          birth_date: values.birthDate,
-          gender: values.gender,
-          student_no: values.studentNo,
-          grade: values.grade,
-          major: values.major,
-          enrollment_status: values.enrollmentStatus,
-        },
-      },
+      options: { data: profileData },
     });
     setLoading(false);
 
@@ -207,107 +218,139 @@ export default function SignupForm() {
       </div>
 
       <div>
-        <label htmlFor="signup-birth" className={LABEL_CLASS}>
-          생년월일
-        </label>
-        <input
-          id="signup-birth"
-          name="birth-date"
-          type="date"
-          value={birthDate}
-          onChange={(e) => setBirthDate(e.target.value)}
-          className={FIELD_CLASS}
-        />
+        <span className={LABEL_CLASS}>학생 여부</span>
+        <div className="flex gap-4">
+          <label className="flex items-center gap-2 text-sm text-slate-700">
+            <input
+              type="radio"
+              name="is-student"
+              value="yes"
+              checked={isStudent === 'yes'}
+              onChange={() => setIsStudent('yes')}
+              className="accent-blue-500"
+            />
+            학생입니다
+          </label>
+          <label className="flex items-center gap-2 text-sm text-slate-700">
+            <input
+              type="radio"
+              name="is-student"
+              value="no"
+              checked={isStudent === 'no'}
+              onChange={() => setIsStudent('no')}
+              className="accent-blue-500"
+            />
+            학생이 아닙니다
+          </label>
+        </div>
       </div>
 
-      <div>
-        <label htmlFor="signup-gender" className={LABEL_CLASS}>
-          성별
-        </label>
-        <select
-          id="signup-gender"
-          name="gender"
-          value={gender}
-          onChange={(e) => setGender(e.target.value)}
-          className={FIELD_CLASS}
-        >
-          <option value="">선택</option>
-          {GENDER_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-      </div>
+      {isStudent === 'yes' && (
+        <>
+          <div>
+            <label htmlFor="signup-birth" className={LABEL_CLASS}>
+              생년월일
+            </label>
+            <input
+              id="signup-birth"
+              name="birth-date"
+              type="date"
+              value={birthDate}
+              onChange={(e) => setBirthDate(e.target.value)}
+              className={FIELD_CLASS}
+            />
+          </div>
 
-      <div>
-        <label htmlFor="signup-student-no" className={LABEL_CLASS}>
-          학번
-        </label>
-        <input
-          id="signup-student-no"
-          name="student-no"
-          type="text"
-          value={studentNo}
-          onChange={(e) => setStudentNo(e.target.value)}
-          placeholder="예시: 2292004"
-          className={FIELD_CLASS}
-        />
-      </div>
+          <div>
+            <label htmlFor="signup-gender" className={LABEL_CLASS}>
+              성별
+            </label>
+            <select
+              id="signup-gender"
+              name="gender"
+              value={gender}
+              onChange={(e) => setGender(e.target.value)}
+              className={FIELD_CLASS}
+            >
+              <option value="">선택</option>
+              {GENDER_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
 
-      <div>
-        <label htmlFor="signup-grade" className={LABEL_CLASS}>
-          학년
-        </label>
-        <select
-          id="signup-grade"
-          name="grade"
-          value={grade}
-          onChange={(e) => setGrade(e.target.value)}
-          className={FIELD_CLASS}
-        >
-          <option value="">선택</option>
-          {GRADE_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-      </div>
+          <div>
+            <label htmlFor="signup-student-no" className={LABEL_CLASS}>
+              학번
+            </label>
+            <input
+              id="signup-student-no"
+              name="student-no"
+              type="text"
+              value={studentNo}
+              onChange={(e) => setStudentNo(e.target.value)}
+              placeholder="예시: 2292004"
+              className={FIELD_CLASS}
+            />
+          </div>
 
-      <div>
-        <label htmlFor="signup-major" className={LABEL_CLASS}>
-          전공
-        </label>
-        <input
-          id="signup-major"
-          name="major"
-          type="text"
-          value={major}
-          onChange={(e) => setMajor(e.target.value)}
-          className={FIELD_CLASS}
-        />
-      </div>
+          <div>
+            <label htmlFor="signup-grade" className={LABEL_CLASS}>
+              학년
+            </label>
+            <select
+              id="signup-grade"
+              name="grade"
+              value={grade}
+              onChange={(e) => setGrade(e.target.value)}
+              className={FIELD_CLASS}
+            >
+              <option value="">선택</option>
+              {GRADE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
 
-      <div>
-        <label htmlFor="signup-enrollment" className={LABEL_CLASS}>
-          재학 상태
-        </label>
-        <select
-          id="signup-enrollment"
-          name="enrollment-status"
-          value={enrollmentStatus}
-          onChange={(e) => setEnrollmentStatus(e.target.value)}
-          className={FIELD_CLASS}
-        >
-          <option value="">선택</option>
-          {ENROLLMENT_STATUS_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-      </div>
+          <div>
+            <label htmlFor="signup-major" className={LABEL_CLASS}>
+              전공
+            </label>
+            <input
+              id="signup-major"
+              name="major"
+              type="text"
+              value={major}
+              onChange={(e) => setMajor(e.target.value)}
+              className={FIELD_CLASS}
+            />
+          </div>
+
+          <div>
+            <label htmlFor="signup-enrollment" className={LABEL_CLASS}>
+              재학 상태
+            </label>
+            <select
+              id="signup-enrollment"
+              name="enrollment-status"
+              value={enrollmentStatus}
+              onChange={(e) => setEnrollmentStatus(e.target.value)}
+              className={FIELD_CLASS}
+            >
+              <option value="">선택</option>
+              {ENROLLMENT_STATUS_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </>
+      )}
 
       {errorMsg && (
         <p className="text-sm text-red-600" role="alert">

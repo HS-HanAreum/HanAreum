@@ -84,37 +84,10 @@ export default function PlaceDetail({ place }: PlaceDetailProps) {
             </div>
           </section>
 
-          {/* 거리 정보 (한성대 기준 거리만 실제 값, 나머지 지점은 준비중) */}
-          <section className="rounded-2xl border border-gray-200 bg-white p-5">
-            <h2 className="mb-3 text-sm font-semibold text-slate-900">거리 정보</h2>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <div>
-                <div className="flex items-center gap-2 text-sm text-slate-700">
-                  한성대 <DistanceDots level={level} />
-                </div>
-                <p className="mt-1 text-xs text-slate-500">{distanceText || '거리 정보 없음'}</p>
-              </div>
-              <div>
-                <div className="text-sm text-slate-400">한성대입구역</div>
-                <p className="mt-1 text-xs text-slate-400">준비중</p>
-              </div>
-              <div>
-                <div className="text-sm text-slate-400">창신역</div>
-                <p className="mt-1 text-xs text-slate-400">준비중</p>
-              </div>
-            </div>
-          </section>
-
           {/* 대표 메뉴 (Kakao 검색 결과에 없는 정보 → 준비중) */}
-          <section className="rounded-2xl border border-gray-200 bg-white p-5">
+          <section className="min-h-[160px] rounded-2xl border border-gray-200 bg-white p-5">
             <h2 className="mb-2 text-sm font-semibold text-slate-900">대표 메뉴</h2>
             <p className="text-sm text-slate-400">메뉴 정보 준비중</p>
-          </section>
-
-          {/* 시간대별 혼잡도 (혼잡도 기능 연동 후 표시 → 준비중) */}
-          <section className="rounded-2xl border border-gray-200 bg-white p-5">
-            <h2 className="mb-2 text-sm font-semibold text-slate-900">시간대별 혼잡도</h2>
-            <p className="text-sm text-slate-400">혼잡도 준비중</p>
           </section>
         </div>
 
@@ -166,6 +139,33 @@ export default function PlaceDetail({ place }: PlaceDetailProps) {
                 카카오맵에서 보기
               </a>
             </div>
+          </section>
+
+          {/* 거리 정보 (한성대 기준 거리만 실제 값, 나머지 지점은 준비중) */}
+          <section className="rounded-2xl border border-gray-200 bg-white p-5">
+            <h2 className="mb-3 text-sm font-semibold text-slate-900">거리 정보</h2>
+            <div className="space-y-3">
+              <div>
+                <div className="flex items-center gap-2 text-sm text-slate-700">
+                  한성대 <DistanceDots level={level} />
+                </div>
+                <p className="mt-1 text-xs text-slate-500">{distanceText || '거리 정보 없음'}</p>
+              </div>
+              <div>
+                <div className="text-sm text-slate-400">한성대입구역</div>
+                <p className="mt-1 text-xs text-slate-400">준비중</p>
+              </div>
+              <div>
+                <div className="text-sm text-slate-400">창신역</div>
+                <p className="mt-1 text-xs text-slate-400">준비중</p>
+              </div>
+            </div>
+          </section>
+
+          {/* 시간대별 혼잡도 (혼잡도 기능 연동 후 표시 → 준비중) */}
+          <section className="rounded-2xl border border-gray-200 bg-white p-5">
+            <h2 className="mb-2 text-sm font-semibold text-slate-900">시간대별 혼잡도</h2>
+            <p className="text-sm text-slate-400">혼잡도 준비중</p>
           </section>
         </aside>
       </div>
