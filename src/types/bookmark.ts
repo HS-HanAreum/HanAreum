@@ -38,6 +38,7 @@ export interface Bookmark {
   place_name?: string;
   place_category?: string;
   place_address?: string;
+  provider_place_id?: string;
 }
 
 export interface BookmarkFolder {
