@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { FolderCardProps } from "@/types/bookmark";
 import { getFolderEmoji } from "@/lib/folderUtils";
 
@@ -34,10 +35,15 @@ export default function FolderCard({
   index,
   onDelete,
 }: FolderCardWithDeleteProps): React.ReactElement {
+  const router = useRouter();
   const [showMenu, setShowMenu] = useState<boolean>(false);
   const emoji = getFolderEmoji(folder.icon);
   const colorStyle = FOLDER_COLORS[folder.colorIndex % FOLDER_COLORS.length];
   const animationDelay = index * 0.04;
+
+  const handleCardClick = (): void => {
+    router.push(`/custom-folder/${folder.id}`);
+  };
 
   const handleDelete = (): void => {
     if (confirm(`"${folder.title}" 폴더를 삭제하시겠어요?`)) {
@@ -48,7 +54,8 @@ export default function FolderCard({
 
   return (
     <article
-      className="group rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-lg hover:shadow-slate-200"
+      onClick={handleCardClick}
+      className="group rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-lg hover:shadow-slate-200 cursor-pointer"
       style={{
         animation: `fadeInUp 0.5s ease-out ${animationDelay}s both`,
       }}
@@ -79,7 +86,10 @@ export default function FolderCard({
         <div className="relative">
           <button
             type="button"
-            onClick={() => setShowMenu(!showMenu)}
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowMenu(!showMenu);
+            }}
             aria-label={`${folder.title} 더보기`}
             className="rounded-xl p-2 text-slate-500 transition hover:bg-slate-50 hover:text-slate-900 text-lg"
           >
@@ -90,7 +100,10 @@ export default function FolderCard({
             <div className="absolute right-0 mt-1 w-32 rounded-xl border border-gray-200 bg-white shadow-lg z-10">
               <button
                 type="button"
-                onClick={handleDelete}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDelete();
+                }}
                 className="w-full px-4 py-2 text-left text-sm font-bold text-red-600 hover:bg-red-50 rounded-xl transition"
               >
                 🗑️ 삭제
