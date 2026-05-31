@@ -26,6 +26,9 @@ export default function FolderDetailPage(): React.ReactElement {
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [searching, setSearching] = useState(false);
   const [addingPlaceId, setAddingPlaceId] = useState<string | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [selectedBookmarkForDelete, setSelectedBookmarkForDelete] = useState<Bookmark | null>(null);
+  const [deletingPlaceId, setDeletingPlaceId] = useState<string | null>(null);
 
   // 장소 검색 함수 (메인 페이지와 동일한 조건으로 Kakao API 검색)
   const handleSearch = async (query: string) => {
@@ -113,6 +116,63 @@ export default function FolderDetailPage(): React.ReactElement {
       alert('장소 추가에 실패했습니다.');
     } finally {
       setAddingPlaceId(null);
+    }
+  };
+
+  // 삭제 모달 열기
+  const handleOpenDeleteModal = (
+    e: React.MouseEvent<HTMLButtonElement>,
+    bookmark: Bookmark
+  ) => {
+    e.stopPropagation();
+    setSelectedBookmarkForDelete(bookmark);
+    setShowDeleteModal(true);
+  };
+
+  // 삭제 모달 닫기
+  const handleCloseDeleteModal = () => {
+    setShowDeleteModal(false);
+    setSelectedBookmarkForDelete(null);
+  };
+
+  // 저장된 장소 삭제 함수 (확인 후 실행)
+  const handleConfirmDelete = async () => {
+    if (!folder || !selectedBookmarkForDelete) return;
+
+    const bookmark = selectedBookmarkForDelete;
+    setDeletingPlaceId(bookmark.place_id);
+    try {
+      const { supabase } = await import('@/lib/supabase');
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+
+      if (!token) {
+        throw new Error('로그인이 필요합니다');
+      }
+
+      const response = await fetch(
+        `/api/bookmarks/${folder.id}?placeId=${bookmark.place_id}`,
+        {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('삭제 요청 실패');
+      }
+
+      // 북마크 목록 새로고침
+      const bookmarksData = await getBookmarksByFolderId(folder.id);
+      setBookmarks(bookmarksData);
+      handleCloseDeleteModal();
+    } catch (err) {
+      console.error('북마크 삭제 실패:', err);
+      alert('장소 삭제에 실패했습니다.');
+    } finally {
+      setDeletingPlaceId(null);
     }
   };
 
@@ -264,8 +324,17 @@ export default function FolderDetailPage(): React.ReactElement {
               <div
                 key={bookmark.id}
                 onClick={() => handlePlaceClick(bookmark)}
-                className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm cursor-pointer transition hover:-translate-y-1 hover:shadow-lg hover:shadow-slate-200"
+                className="relative rounded-2xl border border-gray-200 bg-white p-5 shadow-sm cursor-pointer transition hover:-translate-y-1 hover:shadow-lg hover:shadow-slate-200"
               >
+                <button
+                  type="button"
+                  onClick={(e) => handleOpenDeleteModal(e, bookmark)}
+                  className="absolute right-3 top-3 rounded-lg p-1.5 text-slate-400 transition hover:text-red-500"
+                  aria-label="삭제"
+                >
+                  <span className="text-lg">✕</span>
+                </button>
+
                 <h3 className="mb-3 text-lg font-bold text-slate-900">
                   {bookmark.place_name}
                 </h3>
@@ -282,6 +351,42 @@ export default function FolderDetailPage(): React.ReactElement {
           <FolderPlacesEmptyState />
         )}
       </main>
+
+      {/* 삭제 확인 모달 */}
+      {showDeleteModal && selectedBookmarkForDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="w-96 rounded-2xl border border-gray-200 bg-white p-6 shadow-lg">
+            <h2 className="mb-2 text-lg font-bold text-slate-900">
+              정말 삭제하시겠어요?
+            </h2>
+            <p className="mb-6 text-sm text-slate-500">
+              "{selectedBookmarkForDelete.place_name}"가 삭제됩니다.
+              이 작업은 되돌릴 수 없습니다.
+            </p>
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={handleCloseDeleteModal}
+                disabled={deletingPlaceId !== null}
+                className="flex-1 rounded-lg border border-gray-200 px-4 py-2.5 font-semibold text-slate-600 transition hover:bg-slate-50 disabled:opacity-50"
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDelete}
+                disabled={deletingPlaceId !== null}
+                className="flex-1 rounded-lg bg-red-500 px-4 py-2.5 font-semibold text-white transition hover:bg-red-600 disabled:opacity-50"
+              >
+                {deletingPlaceId === selectedBookmarkForDelete.place_id
+                  ? "삭제 중..."
+                  : "삭제"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
