@@ -35,6 +35,7 @@ export default function BookmarkPage() {
         .from('bookmarks')
         .select('id, folder_id, created_at, places ( provider_place_id, name, address )')
         .eq('user_id', uid)
+        .is('folder_id', null)
         .order('created_at', { ascending: false });
       if (!active) return;
 
