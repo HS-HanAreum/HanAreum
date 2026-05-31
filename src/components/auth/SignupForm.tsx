@@ -37,29 +37,49 @@ export default function SignupForm() {
   const [errorMsg, setErrorMsg] = useState('');
   const [infoMsg, setInfoMsg] = useState('');
 
+  // 폼 DOM 의 값을 한 번에 읽는다. 크롬 등 브라우저 자동완성은 input 값을 채우면서도
+  // React onChange 를 발생시키지 않을 수 있어, state 만 보면 비어 있는 것으로 잘못
+  // 판정된다. 제출 시점에는 DOM 값을 직접 읽어 검증·가입에 사용한다.
+  function readForm(form: HTMLFormElement) {
+    const data = new FormData(form);
+    const get = (key: string) => String(data.get(key) ?? '');
+    return {
+      username: get('username').trim(),
+      password: get('password'),
+      passwordConfirm: get('password-confirm'),
+      name: get('name').trim(),
+      birthDate: get('birth-date'),
+      gender: get('gender'),
+      studentNo: get('student-no').trim(),
+      grade: get('grade'),
+      major: get('major').trim(),
+      enrollmentStatus: get('enrollment-status'),
+    };
+  }
+
   // 제출 전 입력값 검증. 문제가 있으면 안내 문구를 돌려준다.
-  function validate(): string | null {
+  function validate(v: ReturnType<typeof readForm>): string | null {
     if (
-      !id.trim() ||
-      !password ||
-      !passwordConfirm ||
-      !name.trim() ||
-      !birthDate ||
-      !gender ||
-      !studentNo.trim() ||
-      !grade ||
-      !major.trim() ||
-      !enrollmentStatus
+      !v.username ||
+      !v.password ||
+      !v.passwordConfirm ||
+      !v.name ||
+      !v.birthDate ||
+      !v.gender ||
+      !v.studentNo ||
+      !v.grade ||
+      !v.major ||
+      !v.enrollmentStatus
     ) {
       return '모든 항목을 입력해 주세요.';
     }
-    if (!ID_PATTERN.test(id.trim())) {
+    if (!ID_PATTERN.test(v.username)) {
       return `아이디 형식이 올바르지 않습니다. (${ID_RULE_TEXT})`;
     }
-    if (password.length < PASSWORD_MIN_LENGTH) {
+    if (v.password.length < PASSWORD_MIN_LENGTH) {
       return `비밀번호는 ${PASSWORD_MIN_LENGTH}자 이상이어야 합니다.`;
     }
-    if (password !== passwordConfirm) {
+    if (v.password !== v.passwordConfirm) {
       return '비밀번호가 서로 일치하지 않습니다.';
     }
     return null;
@@ -70,7 +90,8 @@ export default function SignupForm() {
     setErrorMsg('');
     setInfoMsg('');
 
-    const validationError = validate();
+    const values = readForm(e.currentTarget);
+    const validationError = validate(values);
     if (validationError) {
       setErrorMsg(validationError);
       return;
@@ -78,18 +99,18 @@ export default function SignupForm() {
 
     setLoading(true);
     const { data, error } = await supabase.auth.signUp({
-      email: idToEmail(id),
-      password,
+      email: idToEmail(values.username),
+      password: values.password,
       options: {
         data: {
-          username: id.trim(),
-          name: name.trim(),
-          birth_date: birthDate,
-          gender,
-          student_no: studentNo.trim(),
-          grade,
-          major: major.trim(),
-          enrollment_status: enrollmentStatus,
+          username: values.username,
+          name: values.name,
+          birth_date: values.birthDate,
+          gender: values.gender,
+          student_no: values.studentNo,
+          grade: values.grade,
+          major: values.major,
+          enrollment_status: values.enrollmentStatus,
         },
       },
     });
@@ -129,6 +150,7 @@ export default function SignupForm() {
         </label>
         <input
           id="signup-id"
+          name="username"
           type="text"
           value={id}
           onChange={(e) => setId(e.target.value)}
@@ -144,6 +166,7 @@ export default function SignupForm() {
         </label>
         <input
           id="signup-password"
+          name="password"
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
@@ -159,6 +182,7 @@ export default function SignupForm() {
         </label>
         <input
           id="signup-password-confirm"
+          name="password-confirm"
           type="password"
           value={passwordConfirm}
           onChange={(e) => setPasswordConfirm(e.target.value)}
@@ -174,6 +198,7 @@ export default function SignupForm() {
         </label>
         <input
           id="signup-name"
+          name="name"
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
@@ -187,6 +212,7 @@ export default function SignupForm() {
         </label>
         <input
           id="signup-birth"
+          name="birth-date"
           type="date"
           value={birthDate}
           onChange={(e) => setBirthDate(e.target.value)}
@@ -200,6 +226,7 @@ export default function SignupForm() {
         </label>
         <select
           id="signup-gender"
+          name="gender"
           value={gender}
           onChange={(e) => setGender(e.target.value)}
           className={FIELD_CLASS}
@@ -219,9 +246,11 @@ export default function SignupForm() {
         </label>
         <input
           id="signup-student-no"
+          name="student-no"
           type="text"
           value={studentNo}
           onChange={(e) => setStudentNo(e.target.value)}
+          placeholder="예시: 2292004"
           className={FIELD_CLASS}
         />
       </div>
@@ -232,6 +261,7 @@ export default function SignupForm() {
         </label>
         <select
           id="signup-grade"
+          name="grade"
           value={grade}
           onChange={(e) => setGrade(e.target.value)}
           className={FIELD_CLASS}
@@ -251,6 +281,7 @@ export default function SignupForm() {
         </label>
         <input
           id="signup-major"
+          name="major"
           type="text"
           value={major}
           onChange={(e) => setMajor(e.target.value)}
@@ -264,6 +295,7 @@ export default function SignupForm() {
         </label>
         <select
           id="signup-enrollment"
+          name="enrollment-status"
           value={enrollmentStatus}
           onChange={(e) => setEnrollmentStatus(e.target.value)}
           className={FIELD_CLASS}
