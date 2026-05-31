@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
 import Header from '@/components/layout/Header';
 import RouteMap from '@/components/routes/RouteMap';
 import { supabase } from '@/lib/supabase';
@@ -503,16 +502,40 @@ export default function RoutesPage() {
   const summary = selectedPlaces.map((place) => place.name).join(' → ');
   const isEditing = editingId !== null;
 
+  // 로그인 확인 중: 간단한 로딩 문구만 보여준다.
+  if (loggedIn === null) {
+    return (
+      <div className="min-h-screen bg-[#F8FAFC]">
+        <Header />
+        <main className="mx-auto max-w-7xl px-6 py-6">
+          <p className="mt-10 rounded-2xl border border-[#E2E8F0] bg-white p-8 text-center text-sm text-[#64748B]">
+            로그인 상태를 확인하는 중입니다.
+          </p>
+        </main>
+      </div>
+    );
+  }
+
+  // 비로그인: 동선 기능 UI를 숨기고 안내 카드만 보여준다.
+  if (loggedIn === false) {
+    return (
+      <div className="min-h-screen bg-[#F8FAFC]">
+        <Header />
+        <main className="mx-auto max-w-md px-6 py-16">
+          <div className="rounded-2xl border border-[#E2E8F0] bg-white p-8 text-center">
+            <p className="text-base font-medium text-[#0F172A]">로그인 후 이용 가능합니다.</p>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
       <Header />
 
       <main className="mx-auto max-w-7xl px-6 py-6">
-        <Link href="/" className="text-sm text-[#64748B] hover:text-[#3B82F6]">
-          ← 홈으로
-        </Link>
-
-        <h1 className="mt-3 text-2xl font-bold text-[#0F172A]">
+        <h1 className="text-2xl font-bold text-[#0F172A]">
           HanAreum <span className="text-[#94A3B8]">/</span> 나만의 동선
         </h1>
         <p className="mt-1 text-sm text-[#64748B]">
@@ -582,7 +605,13 @@ export default function RoutesPage() {
               ))}
             </div>
 
-            <div className="mt-4 flex flex-col gap-2">
+            <div
+              className={`mt-4 flex flex-col gap-2 ${
+                searched && !searchLoading && !searchError && searchResults.length > 0
+                  ? 'max-h-[480px] overflow-y-auto pr-2'
+                  : ''
+              }`}
+            >
               {searchLoading ? (
                 <p className="rounded-xl border border-dashed border-[#E2E8F0] bg-white p-6 text-center text-sm text-[#94A3B8]">
                   검색 중...
