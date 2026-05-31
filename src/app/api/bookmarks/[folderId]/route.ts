@@ -60,6 +60,7 @@ export async function GET(
     }
 
     // places 정보를 최상위 레벨로 평탄화
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const bookmarksWithPlaces = (data || []).map((bookmark: any) => ({
       id: bookmark.id,
       user_id: bookmark.user_id,

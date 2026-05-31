@@ -22,6 +22,7 @@ export default function FolderDetailPage(): React.ReactElement {
 
   // 검색 관련 상태
   const [searchQuery, setSearchQuery] = useState("");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [searching, setSearching] = useState(false);
   const [addingPlaceId, setAddingPlaceId] = useState<string | null>(null);
@@ -80,6 +81,7 @@ export default function FolderDetailPage(): React.ReactElement {
   };
 
   // 북마크에 추가 함수
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleAddBookmark = async (place: any) => {
     if (!folder) return;
 
@@ -126,6 +128,7 @@ export default function FolderDetailPage(): React.ReactElement {
         const bookmarksData = await getBookmarksByFolderId(folderId);
 
         // BookmarkFolder를 CustomFolder로 변환
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const customFolder: CustomFolder = {
           id: folderData.id,
           title: folderData.name,
