@@ -28,9 +28,20 @@ create table if not exists public.places (
   lat               double precision,
   lng               double precision,
   place_url         text,
+  -- 상세페이지 표시용 보조 정보. 검색 API 결과엔 없어 운영자가 채우거나 비워둔다(없으면 화면에서 안내 문구로 대체).
+  menu_summary      text,
+  business_hours    text,
+  intro             text,
   created_at        timestamptz not null default now(),
   unique (provider, provider_place_id)
 );
+
+-- (컬럼 추가) 이미 만들어진 places 테이블에도 상세 보조 컬럼을 반영한다.
+-- create table 은 "없을 때만" 생성하므로, 기존 DB 에는 이 alter 로만 컬럼이 추가된다.
+alter table public.places
+  add column if not exists menu_summary   text,
+  add column if not exists business_hours text,
+  add column if not exists intro          text;
 
 -- 북마크 폴더 (사용자별 커스텀 분류)
 -- icon: 폴더 카드에 표시할 아이콘 키 (folder/coffee/book/food/star). 기본값 'folder'.
