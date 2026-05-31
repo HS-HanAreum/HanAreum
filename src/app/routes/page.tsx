@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import Header from '@/components/layout/Header';
 import RouteMap from '@/components/routes/RouteMap';
 import { supabase } from '@/lib/supabase';
@@ -524,6 +525,12 @@ export default function RoutesPage() {
         <main className="mx-auto max-w-md px-6 py-16">
           <div className="rounded-2xl border border-[#E2E8F0] bg-white p-8 text-center">
             <p className="text-base font-medium text-[#0F172A]">로그인 후 이용 가능합니다.</p>
+            <Link
+              href="/login"
+              className="mt-4 inline-block rounded-lg bg-[#3B82F6] px-4 py-2 text-sm font-medium text-white hover:bg-[#2f6fd6]"
+            >
+              로그인 하러 가기
+            </Link>
           </div>
         </main>
       </div>
