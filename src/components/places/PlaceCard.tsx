@@ -18,6 +18,7 @@ import { runWithImageLimit } from './imageQueue';
 
 interface PlaceCardProps {
   place: Place;
+  reviewCount?: number; // 이 장소의 리뷰 수 (목록에서 한 번에 조회해 내려준다). 로딩 전이면 undefined
 }
 
 // "음식점 > 카페 > 디저트카페" 처럼 긴 분류에서 마지막 항목만 보여준다
@@ -50,7 +51,7 @@ function categoryFallbackIcon(category: string) {
   return <MapPinIcon className={className} />;
 }
 
-export default function PlaceCard({ place }: PlaceCardProps) {
+export default function PlaceCard({ place, reviewCount }: PlaceCardProps) {
   // 장소 이미지는 Naver 검색으로 보조로 가져온다 (Kakao 결과엔 사진이 없음).
   // 카드가 마운트될 때(= 화면에 보이는 카드만) "장소명 + 지역"으로 1장 요청한다.
   // 원본(imageUrl) 우선 -> 깨지면 썸네일 -> 둘 다 없으면 카테고리 대체 아이콘 순으로 떨어진다.
@@ -127,10 +128,10 @@ export default function PlaceCard({ place }: PlaceCardProps) {
       <div className="flex flex-1 flex-col p-3">
         <h3 className="truncate font-semibold text-slate-900">{place.name}</h3>
 
-        {/* 별점은 리뷰 기능 연동 후 표시 (자리표시자) */}
-        <div className="mt-1 flex items-center gap-1 text-xs text-slate-400">
-          <StarIcon className="h-3.5 w-3.5" />
-          <span>리뷰 준비중</span>
+        {/* 리뷰 수 (목록에서 한 번에 조회해 내려받는다) */}
+        <div className="mt-1 flex items-center gap-1 text-xs text-slate-500">
+          <StarIcon className="h-3.5 w-3.5 text-amber-400" filled />
+          <span>{reviewCount === undefined ? '리뷰 불러오는 중' : `리뷰 ${reviewCount}개`}</span>
         </div>
 
         <p className="mt-1 line-clamp-1 text-xs text-slate-500">{shortCategory(place.category)}</p>

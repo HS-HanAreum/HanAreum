@@ -15,6 +15,11 @@ export interface Place {
   lng: number; // 경도
   placeUrl: string; // Kakao 장소 상세 URL
   distance: number | null; // 검색 중심에서의 거리(m). 중심 좌표를 줬을 때만 채워진다
+  // 아래 3개는 상세페이지 표시용 보조 정보. 검색 결과엔 없어 DB(places)에 있을 때만 채워진다.
+  // 값이 없으면 상세페이지에서 카테고리 기반 안내 문구로 대체한다. (placeMeta.ts)
+  menuSummary?: string | null; // 대표 메뉴
+  businessHours?: string | null; // 운영 시간
+  intro?: string | null; // 한 줄 소개
 }
 
 export interface PlaceSearchMeta {
