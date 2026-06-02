@@ -53,7 +53,7 @@ interface DbReviewRow {
   congestion: string | null;
   created_at: string;
   user_id: string;
-  users: { nickname: string | null } | null;
+  users: { nickname: string | null; is_student: boolean | null } | null;
   review_likes: { user_id: string }[];
 }
 
@@ -96,7 +96,7 @@ async function loadReviews(placeId: string, currentUserId: string | null): Promi
   const { data, error } = await supabase
     .from('reviews')
     .select(
-      'id, rating, content, visit_day, visit_time_slot, congestion, created_at, user_id, users ( nickname ), review_likes ( user_id )',
+      'id, rating, content, visit_day, visit_time_slot, congestion, created_at, user_id, users ( nickname, is_student ), review_likes ( user_id )',
     )
     .eq('place_id', placeId)
     .order('created_at', { ascending: false });
@@ -105,8 +105,11 @@ async function loadReviews(placeId: string, currentUserId: string | null): Promi
   const rows = data as unknown as DbReviewRow[];
   return rows.map((row) => ({
     id: row.id,
+    userId: row.user_id,
     author: row.users?.nickname ?? '사용자',
     rating: Number(row.rating),
+    // 재학생 인증 여부. 가입 시 선택한 값을 public.users.is_student 에 저장하고, 여기서 조인해 읽는다.
+    isStudent: Boolean(row.users?.is_student),
     day: asMember(row.visit_day, REVIEW_DAYS),
     timeSlot: asMember(row.visit_time_slot, REVIEW_TIME_SLOTS),
     congestion: asMember(row.congestion, REVIEW_CONGESTION_LEVELS),
@@ -160,6 +163,8 @@ export default function ReviewList({ place }: ReviewListProps) {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  // 수정 모드일 때 수정 대상 리뷰. null 이면 새 리뷰 작성.
+  const [editingReview, setEditingReview] = useState<Review | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [placeId, setPlaceId] = useState<string | null>(null);
 
@@ -222,6 +227,61 @@ export default function ReviewList({ place }: ReviewListProps) {
       setReviews(await loadReviews(id, userId));
     } catch {
       alert('리뷰 저장에 실패했습니다. 잠시 후 다시 시도해주세요.');
+    }
+  }
+
+  // 새 리뷰 작성 모달 열기 (수정 대상 초기화)
+  function openCreate() {
+    setEditingReview(null);
+    setIsModalOpen(true);
+  }
+
+  // 본인 리뷰 수정 모달 열기 (해당 리뷰 값을 폼에 채운다)
+  function openEdit(review: Review) {
+    setEditingReview(review);
+    setIsModalOpen(true);
+  }
+
+  function closeModal() {
+    setIsModalOpen(false);
+    setEditingReview(null);
+  }
+
+  // 수정 모달에서 등록하면 해당 리뷰를 Supabase 에서 수정하고 목록을 새로고침한다.
+  async function handleUpdate(id: string, input: ReviewFormInput) {
+    if (!userId) {
+      alert('로그인 후 리뷰를 수정할 수 있습니다.');
+      return;
+    }
+    try {
+      const { error } = await supabase
+        .from('reviews')
+        .update({
+          rating: input.rating,
+          content: input.content,
+          visit_day: input.day,
+          visit_time_slot: input.timeSlot,
+          congestion: input.congestion,
+        })
+        .eq('id', id);
+      if (error) throw error;
+
+      if (placeId) setReviews(await loadReviews(placeId, userId));
+    } catch {
+      alert('리뷰 수정에 실패했습니다. 잠시 후 다시 시도해주세요.');
+    }
+  }
+
+  // 본인 리뷰 삭제: 확인 창을 띄우고, 확인하면 Supabase 에서 지운 뒤 목록에서도 제거한다.
+  async function handleDelete(id: string) {
+    if (!userId) return;
+    if (!window.confirm('삭제하시겠습니까?')) return;
+    try {
+      const { error } = await supabase.from('reviews').delete().eq('id', id);
+      if (error) throw error;
+      setReviews((prev) => prev.filter((review) => review.id !== id));
+    } catch {
+      alert('리뷰 삭제에 실패했습니다. 잠시 후 다시 시도해주세요.');
     }
   }
 
@@ -296,7 +356,7 @@ export default function ReviewList({ place }: ReviewListProps) {
         </h2>
         <button
           type="button"
-          onClick={() => setIsModalOpen(true)}
+          onClick={openCreate}
           className="rounded-lg bg-blue-500 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-blue-600"
         >
           리뷰 작성
@@ -380,8 +440,8 @@ export default function ReviewList({ place }: ReviewListProps) {
           </div>
         </aside>
 
-        {/* 우: 리뷰 목록 */}
-        <div className="space-y-3">
+        {/* 우: 리뷰 목록 (최대 5개 높이까지만 보이고 넘치면 세로 스크롤) */}
+        <div className="max-h-[640px] space-y-3 overflow-y-auto pr-1">
           {loading ? (
             <div className="rounded-xl border border-gray-200 bg-white p-8 text-center">
               <p className="text-sm text-slate-400">리뷰를 불러오는 중...</p>
@@ -427,11 +487,19 @@ export default function ReviewList({ place }: ReviewListProps) {
                       </div>
                     </div>
                   </div>
-                  <div className="flex shrink-0 items-center gap-1 text-amber-400">
-                    <StarIcon className="h-4 w-4" filled />
-                    <span className="text-sm font-semibold text-slate-700">
-                      {review.rating.toFixed(1)}
-                    </span>
+                  <div className="flex shrink-0 items-center gap-2">
+                    {/* 재학생 인증 사용자가 쓴 리뷰일 때만 별점 왼쪽에 명패 표시 */}
+                    {review.isStudent && (
+                      <span className="rounded-md border border-blue-200 bg-blue-50 px-1.5 py-0.5 text-xs font-medium text-blue-600">
+                        재학생 인증
+                      </span>
+                    )}
+                    <div className="flex items-center gap-1 text-amber-400">
+                      <StarIcon className="h-4 w-4" filled />
+                      <span className="text-sm font-semibold text-slate-700">
+                        {Math.round(review.rating)}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
@@ -439,20 +507,39 @@ export default function ReviewList({ place }: ReviewListProps) {
                 <p className="mt-3 text-xs text-slate-400">{review.time}</p>
                 <p className="mt-1 text-sm text-slate-700">{review.content}</p>
 
-                {/* 좋아요 */}
-                <div className="mt-3">
+                {/* 좋아요 + (본인 리뷰일 때) 수정/삭제 */}
+                <div className="mt-3 flex items-center gap-2">
                   <button
                     type="button"
                     onClick={() => handleToggleLike(review.id)}
                     className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition ${
                       review.liked
-                        ? 'border-red-200 bg-red-50 text-red-500'
-                        : 'border-gray-200 bg-white text-slate-500 hover:border-red-200 hover:text-red-500'
+                        ? 'border-blue-200 bg-blue-50 text-blue-500'
+                        : 'border-gray-200 bg-white text-slate-500 hover:border-blue-200 hover:text-blue-500'
                     }`}
                   >
                     <HeartIcon className="h-4 w-4" filled={review.liked} />
                     {review.likeCount}
                   </button>
+
+                  {review.userId === userId && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => openEdit(review)}
+                        className="rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-medium text-slate-500 transition hover:border-blue-200 hover:text-blue-500"
+                      >
+                        수정
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(review.id)}
+                        className="rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-medium text-slate-500 transition hover:border-red-200 hover:text-red-500"
+                      >
+                        삭제
+                      </button>
+                    </>
+                  )}
                 </div>
               </article>
             ))
@@ -460,9 +547,29 @@ export default function ReviewList({ place }: ReviewListProps) {
         </div>
       </div>
 
-      {/* 리뷰 작성 모달 */}
+      {/* 리뷰 작성 / 수정 모달 */}
       {isModalOpen && (
-        <ReviewForm onClose={() => setIsModalOpen(false)} onSubmit={handleSubmit} />
+        <ReviewForm
+          onClose={closeModal}
+          onSubmit={
+            editingReview
+              ? (input) => handleUpdate(editingReview.id, input)
+              : handleSubmit
+          }
+          initialValue={
+            editingReview
+              ? {
+                  rating: editingReview.rating,
+                  day: editingReview.day,
+                  timeSlot: editingReview.timeSlot,
+                  congestion: editingReview.congestion,
+                  content: editingReview.content,
+                }
+              : undefined
+          }
+          title={editingReview ? '리뷰 수정' : '리뷰 작성'}
+          submitLabel={editingReview ? '수정' : '등록'}
+        />
       )}
     </section>
   );

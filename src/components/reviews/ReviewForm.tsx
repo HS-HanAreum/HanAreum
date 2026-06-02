@@ -15,6 +15,9 @@ import {
 interface ReviewFormProps {
   onClose: () => void;
   onSubmit: (input: ReviewFormInput) => void;
+  initialValue?: ReviewFormInput; // 수정 모드일 때 기존 리뷰 값 (없으면 새 리뷰 작성)
+  title?: string; // 모달 제목 (기본: 리뷰 작성)
+  submitLabel?: string; // 등록 버튼 문구 (기본: 등록)
 }
 
 // 선택 가능한 알약 버튼 (선택되면 파란색)
@@ -42,12 +45,20 @@ function Pill({
   );
 }
 
-export default function ReviewForm({ onClose, onSubmit }: ReviewFormProps) {
-  const [rating, setRating] = useState(0);
-  const [day, setDay] = useState<ReviewDay | null>(null);
-  const [timeSlot, setTimeSlot] = useState<ReviewTimeSlot | null>(null);
-  const [congestion, setCongestion] = useState<ReviewCongestion | null>(null);
-  const [content, setContent] = useState('');
+export default function ReviewForm({
+  onClose,
+  onSubmit,
+  initialValue,
+  title = '리뷰 작성',
+  submitLabel = '등록',
+}: ReviewFormProps) {
+  const [rating, setRating] = useState(initialValue?.rating ?? 0);
+  const [day, setDay] = useState<ReviewDay | null>(initialValue?.day ?? null);
+  const [timeSlot, setTimeSlot] = useState<ReviewTimeSlot | null>(initialValue?.timeSlot ?? null);
+  const [congestion, setCongestion] = useState<ReviewCongestion | null>(
+    initialValue?.congestion ?? null,
+  );
+  const [content, setContent] = useState(initialValue?.content ?? '');
 
   // 별점은 필수, 나머지는 선택값으로 둔다.
   const canSubmit = rating > 0 && content.trim().length > 0;
@@ -63,7 +74,7 @@ export default function ReviewForm({ onClose, onSubmit }: ReviewFormProps) {
       <section className="w-full max-w-[520px] rounded-2xl border border-gray-200 bg-white p-6 shadow-2xl shadow-slate-900/20">
         {/* 제목 + 닫기 */}
         <div className="mb-5 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-slate-900">리뷰 작성</h2>
+          <h2 className="text-lg font-bold text-slate-900">{title}</h2>
           <button
             type="button"
             onClick={onClose}
@@ -91,9 +102,7 @@ export default function ReviewForm({ onClose, onSubmit }: ReviewFormProps) {
                 </button>
               ))}
               {rating > 0 && (
-                <span className="ml-2 text-sm font-medium text-slate-600">
-                  {rating.toFixed(1)}
-                </span>
+                <span className="ml-2 text-sm font-medium text-slate-600">{rating}</span>
               )}
             </div>
           </div>
@@ -163,7 +172,7 @@ export default function ReviewForm({ onClose, onSubmit }: ReviewFormProps) {
           disabled={!canSubmit}
           className="mt-6 w-full rounded-lg bg-blue-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-600 disabled:cursor-not-allowed disabled:bg-slate-300"
         >
-          등록
+          {submitLabel}
         </button>
       </section>
     </div>
