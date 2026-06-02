@@ -136,7 +136,7 @@ begin
     new.id,
     new.email,
     split_part(new.email, '@', 1),
-    coalesce(new.raw_user_meta_data ->> 'is_student', 'false') = 'true'
+    coalesce((new.raw_user_meta_data ->> 'is_student')::boolean, false)
   );
   return new;
 end;
