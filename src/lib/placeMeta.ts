@@ -98,10 +98,12 @@ export interface CongestionSlot {
   level: ReviewCongestion | null; // 평균을 다시 라벨로 (색 표시용). count=0 이면 null
 }
 
-// 점수(1~3)를 라벨로 되돌린다. 반올림: ~1.5 여유, ~2.5 보통, 그 이상 혼잡.
+// 평균 점수(1~3)를 0~100% 로 정규화해 3등분한다. (여유=1→0%, 혼잡=3→100%)
+// 33% 이하 여유, 66% 이하 보통, 그 이상 혼잡.
 function scoreToLevel(score: number): ReviewCongestion {
-  if (score < 1.5) return '여유';
-  if (score < 2.5) return '보통';
+  const percent = ((score - 1) / 2) * 100;
+  if (percent <= 33) return '여유';
+  if (percent <= 66) return '보통';
   return '혼잡';
 }
 
