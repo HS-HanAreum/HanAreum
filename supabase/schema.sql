@@ -123,8 +123,13 @@ security definer
 set search_path = public
 as $$
 begin
-  insert into public.users (id, email, nickname)
-  values (new.id, new.email, split_part(new.email, '@', 1));
+  insert into public.users (id, email, nickname, is_student)
+  values (
+    new.id,
+    new.email,
+    split_part(new.email, '@', 1),
+    coalesce((new.raw_user_meta_data ->> 'is_student')::boolean, false)
+  );
   return new;
 end;
 $$;
